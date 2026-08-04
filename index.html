@@ -53,7 +53,7 @@ textarea{font-family:inherit}
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div><h1>Pilog</h1><div class="sub">飞行日志、值勤计算与飞行人生</div></div><div class="badge">v0.7 · Air China</div></div>
+  <div class="top"><div><h1>Pilog</h1><div class="sub">极速录入、值勤计算与飞行人生</div></div><div class="badge">v0.8 “Quick Log”</div></div>
 
   <section id="calcPage">
     <div class="card">
@@ -86,13 +86,17 @@ textarea{font-family:inherit}
         <div><label>航班号</label><input id="flightNo" placeholder="例如 CA839"></div>
       </div>
       <div class="grid row">
-        <div><label>机型（可选）</label><input id="aircraftType" placeholder="例如 B77W"></div>
-        <div><label>机号（可选）</label><input id="registration" placeholder="例如 B-20A5"></div>
+        <div><label>机型（记忆上次）</label><input id="aircraftType" placeholder="例如 B77W" autocomplete="off"></div>
+        <div><label>机号（自动补 B-）</label><input id="registration" placeholder="例如 20A5" autocomplete="off"></div>
       </div>
       <div class="row"><label>机组人员姓名</label><input id="crewNames" placeholder="多人可用顿号或逗号分隔"></div>
-      <div class="grid row">
-        <div><label>实际飞行值勤期</label><input id="actualFdp" type="time" value="10:00"></div>
-        <div><label>签到时间（可选）</label><input id="dutyReportTime" type="time"></div>
+      <div class="row">
+        <label>时间录入基准</label>
+        <div class="segment" id="timeModeSeg">
+          <button type="button" data-v="local" class="active">北京时间</button>
+          <button type="button" data-v="utc">UTC</button>
+        </div>
+        <div class="sub" style="margin-top:8px">切换后，已输入的推出、起飞、落地和进位时间会自动按 UTC±8 转换。</div>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px">
@@ -177,8 +181,7 @@ textarea{font-family:inherit}
     <div class="card">
       <div class="kicker">运行限制统计</div>
       <div class="statgrid" style="margin-top:12px">
-        <div class="stat"><small>连续7日 FDP</small><b id="sevenFdp">0:00</b><div class="progress"><i id="sevenBar"></i></div><small>上限 60:00</small></div>
-        <div class="stat"><small>本月 FDP</small><b id="monthFdp">0:00</b><div class="progress"><i id="monthFdpBar"></i></div><small>上限 210:00</small></div>
+
         <div class="stat"><small>本月飞行时间</small><b id="monthFlight">0:00</b><div class="progress"><i id="monthFlightBar"></i></div><small>上限 100:00</small></div>
         <div class="stat"><small>本年飞行时间</small><b id="yearFlight">0:00</b><div class="progress"><i id="yearFlightBar"></i></div><small>上限 900:00</small></div>
       </div>
@@ -210,11 +213,45 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.que
 
 
 const AIRPORTS={"PEK": [116.5975, 40.0799], "PKX": [116.4109, 39.5098], "PVG": [121.8052, 31.1443], "SHA": [121.3363, 31.1979], "CAN": [113.2988, 23.3924], "SZX": [113.8107, 22.6393], "CTU": [103.9471, 30.5785], "TFU": [104.4413, 30.3125], "XIY": [108.7516, 34.4471], "HGH": [120.4344, 30.2295], "NKG": [118.862, 31.742], "WUH": [114.2081, 30.7838], "CKG": [106.6417, 29.7192], "KMG": [102.9292, 25.1019], "URC": [87.4742, 43.9071], "HKG": [113.9146, 22.308], "TPE": [121.2328, 25.0777], "NRT": [140.3929, 35.772], "HND": [139.7798, 35.5494], "KIX": [135.244, 34.4347], "ICN": [126.4505, 37.4602], "SIN": [103.994, 1.3644], "BKK": [100.7501, 13.69], "SYD": [151.1772, -33.9461], "MEL": [144.843, -37.6733], "AKL": [174.785, -37.0082], "LHR": [-0.4543, 51.47], "CDG": [2.55, 49.0097], "FRA": [8.5706, 50.0333], "MUC": [11.7861, 48.3538], "FCO": [12.2508, 41.8003], "MXP": [8.7281, 45.6306], "MAD": [-3.5676, 40.4983], "BCN": [2.0785, 41.2974], "VIE": [16.5697, 48.1103], "ZRH": [8.5492, 47.4581], "GVA": [6.1089, 46.2381], "CPH": [12.656, 55.618], "ARN": [17.9186, 59.6519], "ATH": [23.9445, 37.9364], "IST": [28.8146, 41.2753], "DXB": [55.3644, 25.2532], "JFK": [-73.7781, 40.6413], "EWR": [-74.1745, 40.6895], "LAX": [-118.4085, 33.9416], "SFO": [-122.379, 37.6213], "YVR": [-123.184, 49.1967], "YYZ": [-79.6306, 43.6777], "IAD": [-77.4565, 38.9531], "IAH": [-95.3414, 29.9902], "GRU": [-46.4731, -23.4356], "JNB": [28.246, -26.1337], "HNL": [-157.9224, 21.3187], "DEL": [77.1031, 28.5562], "BOM": [72.8679, 19.0896], "KTM": [85.3591, 27.6966], "ULN": [106.7666, 47.8431], "SVO": [37.4146, 55.9726], "LED": [30.2625, 59.8003], "WAW": [20.9671, 52.1657], "BUD": [19.2611, 47.4298], "PRG": [14.2632, 50.1008]};
-let legSeq=0, mapRange="year";
+let legSeq=0, mapRange="year", timeMode="local";
+const TIME_OFFSET_MINUTES = 8 * 60;
 
+function normalizeHHMM(value){
+  const digits=String(value||"").replace(/\D/g,"").slice(0,4);
+  if(!digits)return "";
+  let h,m;
+  if(digits.length<=2){h=parseInt(digits,10);m=0}
+  else if(digits.length===3){h=parseInt(digits.slice(0,1),10);m=parseInt(digits.slice(1),10)}
+  else{h=parseInt(digits.slice(0,2),10);m=parseInt(digits.slice(2),10)}
+  if(Number.isNaN(h)||Number.isNaN(m)||h>23||m>59)return null;
+  return `${pad(h)}${pad(m)}`;
+}
+function hhmmToMinutes(value){
+  const n=normalizeHHMM(value);
+  if(!n)return n===null?null:null;
+  return parseInt(n.slice(0,2),10)*60+parseInt(n.slice(2),10);
+}
+function minutesToHHMM(minutes){
+  const m=((minutes%1440)+1440)%1440;
+  return `${pad(Math.floor(m/60))}${pad(m%60)}`;
+}
+function displayHHMM(value){
+  const n=normalizeHHMM(value);
+  return n?`${n.slice(0,2)}:${n.slice(2)}`:"--:--";
+}
 function toMin(t){
   if(!t)return null;
-  const [h,m]=t.split(":").map(Number); return h*60+m;
+  if(String(t).includes(":")){
+    const [h,m]=String(t).split(":").map(Number);
+    return h*60+m;
+  }
+  return hhmmToMinutes(t);
+}
+function convertRawTime(value,fromMode,toMode){
+  const min=hhmmToMinutes(value);
+  if(min===null)return value;
+  if(fromMode===toMode)return minutesToHHMM(min);
+  return minutesToHHMM(min+(toMode==="local"?TIME_OFFSET_MINUTES:-TIME_OFFSET_MINUTES));
 }
 function minText(m){
   if(m===null||Number.isNaN(m))return "--:--";
@@ -231,18 +268,18 @@ function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 function legTemplate(data={}){
   const id=++legSeq;
   return `<div class="leg-card" data-leg="${id}">
-    <div class="leg-head"><div><strong>航段 <span class="leg-number"></span></strong><div class="sub">机场可随时手动输入并覆盖任何航班号建议</div></div><button class="delete remove-leg" type="button">删除</button></div>
+    <div class="leg-head"><div><strong>航段 <span class="leg-number"></span></strong><div class="sub">机场可手动超控；时间按当前选择的北京时间或 UTC 录入</div></div><button class="delete remove-leg" type="button">删除</button></div>
     <div class="grid row">
       <div><label>出发机场</label><input class="leg-origin" maxlength="4" placeholder="PEK" value="${esc(data.origin)}"></div>
       <div><label>到达机场</label><input class="leg-destination" maxlength="4" placeholder="BCN" value="${esc(data.destination)}"></div>
     </div>
     <div class="grid row">
-      <div><label>推出</label><input class="leg-off" type="time" value="${data.offBlock||""}"></div>
-      <div><label>起飞</label><input class="leg-takeoff" type="time" value="${data.takeoff||""}"></div>
+      <div><label>推出</label><input class="leg-off quick-time" type="text" inputmode="numeric" maxlength="4" placeholder="HHMM" value="${data.offBlock||""}"></div>
+      <div><label>起飞</label><input class="leg-takeoff quick-time" type="text" inputmode="numeric" maxlength="4" placeholder="HHMM" value="${data.takeoff||""}"></div>
     </div>
     <div class="grid row">
-      <div><label>落地</label><input class="leg-landing" type="time" value="${data.landing||""}"></div>
-      <div><label>进位</label><input class="leg-on" type="time" value="${data.onBlock||""}"></div>
+      <div><label>落地</label><input class="leg-landing quick-time" type="text" inputmode="numeric" maxlength="4" placeholder="HHMM" value="${data.landing||""}"></div>
+      <div><label>进位</label><input class="leg-on quick-time" type="text" inputmode="numeric" maxlength="4" placeholder="HHMM" value="${data.onBlock||""}"></div>
     </div>
     <div class="grid row">
       <div><label>计入本人经历时间</label><input class="leg-credit" type="time" value="${data.creditedTimeText||""}"></div>
@@ -261,10 +298,27 @@ function renumberLegs(){
   $("previewLegs").textContent=document.querySelectorAll(".leg-card").length;
 }
 function addLeg(data={}){
+  if(!data.origin){
+    const previous=[...document.querySelectorAll(".leg-card")].at(-1);
+    if(previous)data.origin=previous.querySelector(".leg-destination").value.trim().toUpperCase();
+  }
   $("legsContainer").insertAdjacentHTML("beforeend",legTemplate(data));
   const el=$("legsContainer").lastElementChild;
   el.querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{
-    if(i.classList.contains("leg-origin")||i.classList.contains("leg-destination"))i.value=i.value.toUpperCase();
+    if(i.classList.contains("leg-origin")||i.classList.contains("leg-destination"))
+      i.value=i.value.toUpperCase().replace(/\s/g,"");
+    if(i.classList.contains("quick-time")){
+      i.value=i.value.replace(/\D/g,"").slice(0,4);
+      if(i.value.length===4){
+        const n=normalizeHHMM(i.value);
+        if(n){
+          i.value=n;
+          const times=[...el.querySelectorAll(".quick-time")];
+          const idx=times.indexOf(i);
+          if(idx>=0&&idx<times.length-1)times[idx+1].focus();
+        }
+      }
+    }
     calculateTaskPreview();
   }));
   el.querySelector(".remove-leg").addEventListener("click",()=>{
@@ -277,13 +331,22 @@ function collectLegs(validate=false){
   return [...document.querySelectorAll(".leg-card")].map((el,i)=>{
     const origin=el.querySelector(".leg-origin").value.trim().toUpperCase();
     const destination=el.querySelector(".leg-destination").value.trim().toUpperCase();
-    const off=el.querySelector(".leg-off").value,takeoff=el.querySelector(".leg-takeoff").value,
-          landing=el.querySelector(".leg-landing").value,on=el.querySelector(".leg-on").value;
+    const offRaw=el.querySelector(".leg-off").value,takeRaw=el.querySelector(".leg-takeoff").value,
+          landRaw=el.querySelector(".leg-landing").value,onRaw=el.querySelector(".leg-on").value;
+    const toBeijing=v=>{
+      const m=hhmmToMinutes(v);
+      if(m===null)return null;
+      return timeMode==="utc"?minutesToHHMM(m+TIME_OFFSET_MINUTES):minutesToHHMM(m);
+    };
+    const off=toBeijing(offRaw),takeoff=toBeijing(takeRaw),landing=toBeijing(landRaw),on=toBeijing(onRaw);
     if(validate&&(!origin||!destination||!off||!takeoff||!landing||!on))
       throw new Error(`请完整填写第 ${i+1} 航段的机场和四个实际时间。`);
     const offM=toMin(off),takeM=toMin(takeoff),landM=toMin(landing),onM=toMin(on);
     return {
-      origin,destination,offBlock:off,takeoff,landing,onBlock:on,
+      origin,destination,timeModeAtEntry:timeMode,
+      offBlockRaw:normalizeHHMM(offRaw)||"",takeoffRaw:normalizeHHMM(takeRaw)||"",
+      landingRaw:normalizeHHMM(landRaw)||"",onBlockRaw:normalizeHHMM(onRaw)||"",
+      offBlock:off,takeoff,landing,onBlock:on,
       block:elapsed(offM,onM)||0,flight:elapsed(takeM,landM)||0,
       taxiOut:elapsed(offM,takeM)||0,taxiIn:elapsed(landM,onM)||0,
       credited:toMin(el.querySelector(".leg-credit").value)||0,
@@ -311,7 +374,31 @@ function calculateTaskPreview(){
   $("previewLandings").textContent=landings;$("previewPassengers").textContent=passengers.toLocaleString("zh-CN");
   $("previewDistance").textContent=`${distanceKm.toLocaleString("zh-CN")} km`;renumberLegs();
 }
+document.querySelectorAll("#timeModeSeg button").forEach(b=>b.addEventListener("click",()=>{
+  const newMode=b.dataset.v;
+  if(newMode===timeMode)return;
+  document.querySelectorAll(".quick-time").forEach(input=>{
+    if(input.value)input.value=convertRawTime(input.value,timeMode,newMode);
+  });
+  timeMode=newMode;
+  document.querySelectorAll("#timeModeSeg button").forEach(x=>x.classList.toggle("active",x===b));
+  calculateTaskPreview();
+}));
 $("addLeg").addEventListener("click",()=>addLeg());
+function normalizeRegistration(value){
+  const raw=String(value||"").toUpperCase().replace(/\s/g,"");
+  if(!raw)return "";
+  if(raw.startsWith("B-"))return raw;
+  if(raw.startsWith("B"))return `B-${raw.slice(1).replace(/^-+/,"")}`;
+  return `B-${raw.replace(/^-+/,"")}`;
+}
+$("flightNo").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase().replace(/\s/g,""));
+$("aircraftType").addEventListener("input",e=>{
+  e.target.value=e.target.value.toUpperCase().replace(/\s/g,"");
+  localStorage.setItem("pilog.lastAircraftType",e.target.value);
+});
+$("registration").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase().replace(/\s/g,""));
+$("registration").addEventListener("blur",e=>e.target.value=normalizeRegistration(e.target.value));
 $("saveLog").onclick=()=>{
   try{
     if(!$("logDate").value||!$("flightNo").value.trim())throw new Error("请填写任务日期和航班号。");
@@ -322,8 +409,8 @@ $("saveLog").onclick=()=>{
     });
     arr.push({
       id:Date.now(),date:$("logDate").value,flightNo:$("flightNo").value.trim().toUpperCase(),
-      aircraftType:$("aircraftType").value.trim().toUpperCase(),registration:$("registration").value.trim().toUpperCase(),
-      crew:$("crewNames").value.trim(),fdp:toMin($("actualFdp").value)||0,reportTime:$("dutyReportTime").value,
+      aircraftType:$("aircraftType").value.trim().toUpperCase(),registration:normalizeRegistration($("registration").value),
+      crew:$("crewNames").value.trim(),
       note:$("logNote").value.trim(),legs,
       block:legs.reduce((s,l)=>s+l.block,0),flight:legs.reduce((s,l)=>s+l.flight,0),
       credited:legs.reduce((s,l)=>s+l.credited,0),night:legs.reduce((s,l)=>s+l.night,0),
@@ -336,12 +423,13 @@ $("saveLog").onclick=()=>{
   }catch(e){alert(e.message)}
 };
 function resetLogForm(){
-  ["flightNo","aircraftType","registration","crewNames","dutyReportTime","logNote"].forEach(id=>$(id).value="");
-  $("actualFdp").value="10:00";$("legsContainer").innerHTML="";addLeg();
+  ["flightNo","registration","crewNames","logNote"].forEach(id=>$(id).value="");
+  $("aircraftType").value=localStorage.getItem("pilog.lastAircraftType")||"";
+  $("legsContainer").innerHTML="";addLeg();
 }
 $("clearLogs").onclick=()=>{if(confirm("确认清空全部任务记录？此操作无法撤销。")){save([]);renderAll()}};
 $("exportLogs").onclick=()=>{
-  const payload={app:"Pilog",version:"0.7",exportedAt:new Date().toISOString(),records:logs()};
+  const payload={app:"Pilog",version:"0.8",exportedAt:new Date().toISOString(),records:logs()};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=`Pilog-Backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
@@ -418,11 +506,10 @@ function renderSummary(){
   $("sumDistance").textContent=`${distanceKm.toLocaleString("zh-CN")} km`;
   $("sumEarthLoops").textContent=`${(distanceKm/40075).toFixed(distanceKm>=40075?1:2)} 圈`;
   const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),start7=new Date(today);start7.setDate(start7.getDate()-6);
-  let s7=0,mfdp=0,mf=0,yf=0;
-  logs().forEach(t=>{const d=new Date(t.date+"T12:00:00");if(d>=start7&&d<=new Date(today.getTime()+86399999))s7+=(t.fdp||0);
-    if(d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()){mfdp+=(t.fdp||0);mf+=(t.flight||0)}if(d.getFullYear()===now.getFullYear())yf+=(t.flight||0)});
-  $("sevenFdp").textContent=minText(s7);$("monthFdp").textContent=minText(mfdp);$("monthFlight").textContent=minText(mf);$("yearFlight").textContent=minText(yf);
-  setBar("sevenBar",s7,3600);setBar("monthFdpBar",mfdp,12600);setBar("monthFlightBar",mf,6000);setBar("yearFlightBar",yf,54000);renderMap();
+  let mf=0,yf=0;
+  logs().forEach(t=>{const d=new Date(t.date+"T12:00:00");if(d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()){mf+=(t.flight||0)}if(d.getFullYear()===now.getFullYear())yf+=(t.flight||0)});
+  $("monthFlight").textContent=minText(mf);$("yearFlight").textContent=minText(yf);
+  setBar("monthFlightBar",mf,6000);setBar("yearFlightBar",yf,54000);renderMap();
 }
 document.querySelectorAll(".map-filter button").forEach(b=>b.addEventListener("click",()=>{
   mapRange=b.dataset.range;document.querySelectorAll(".map-filter button").forEach(x=>x.classList.toggle("active",x===b));renderSummary();
@@ -440,7 +527,8 @@ function renderRecords(){
       ${t.aircraftType||t.registration?`<div class="sub" style="margin-top:6px">${esc(t.aircraftType)} ${esc(t.registration)}</div>`:""}
       ${(t.legs||[]).map((l,i)=>`<div style="margin-top:9px;padding:10px 12px;background:var(--panel2);border-radius:12px">
         <strong style="font-size:14px">航段 ${i+1} · ${esc(l.origin)} → ${esc(l.destination)}</strong>
-        <div class="sub" style="margin-top:5px">推出 ${l.offBlock} · 起飞 ${l.takeoff} · 落地 ${l.landing} · 进位 ${l.onBlock}</div>
+        <div class="sub" style="margin-top:5px">北京时间：推出 ${displayHHMM(l.offBlock)} · 起飞 ${displayHHMM(l.takeoff)} · 落地 ${displayHHMM(l.landing)} · 进位 ${displayHHMM(l.onBlock)}</div>
+        <div class="sub" style="margin-top:5px">UTC：推出 ${displayHHMM(minutesToHHMM((toMin(l.offBlock)||0)-TIME_OFFSET_MINUTES))} · 起飞 ${displayHHMM(minutesToHHMM((toMin(l.takeoff)||0)-TIME_OFFSET_MINUTES))} · 落地 ${displayHHMM(minutesToHHMM((toMin(l.landing)||0)-TIME_OFFSET_MINUTES))} · 进位 ${displayHHMM(minutesToHHMM((toMin(l.onBlock)||0)-TIME_OFFSET_MINUTES))}</div>
         <div class="sub" style="margin-top:5px">Block ${minText(l.block)} · 飞行 ${minText(l.flight)} · 本人经历 ${minText(l.credited||0)} · 夜航 ${minText(l.night||0)}</div>
         <div class="sub" style="margin-top:5px">${l.passengers!==null&&l.passengers!==undefined?`旅客 ${l.passengers} 人 · `:""}航程 ${(l.distanceKm||0).toLocaleString("zh-CN")} km</div>
         ${l.note?`<div class="sub" style="margin-top:5px">${esc(l.note)}</div>`:""}
@@ -452,17 +540,19 @@ function renderRecords(){
 }
 function renderAll(){renderRecords();renderSummary()}
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=070").then(reg=>{
+  navigator.serviceWorker.register("./sw.js?v=080").then(reg=>{
     reg.update();
     navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(!sessionStorage.getItem("pilog-reloaded-070")){
-        sessionStorage.setItem("pilog-reloaded-070","1");
+      if(!sessionStorage.getItem("pilog-reloaded-080")){
+        sessionStorage.setItem("pilog-reloaded-080","1");
         location.reload();
       }
     });
   }).catch(()=>{});
 }
-setDefault();calculate();addLeg();renderAll();
+setDefault();calculate();
+$("aircraftType").value=localStorage.getItem("pilog.lastAircraftType")||"";
+addLeg();renderAll();
 </script>
 </body>
 </html>
