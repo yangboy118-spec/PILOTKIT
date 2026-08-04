@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PilotKit">
+<title>PilotKit</title>
+<style>
+:root{
+  --bg:#0b0d12;--panel:#151821;--panel2:#1b1f2a;--text:#f5f7fb;--muted:#9aa3b2;
+  --accent:#73a7ff;--ok:#55d98b;--warn:#ffc857;--danger:#ff6b6b;--line:#2a3040;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0b0d12,#111722 60%,#0b0d12);color:var(--text);
+font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif;min-height:100vh}
+.wrap{max-width:560px;margin:auto;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 28px)}
+.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+h1{font-size:34px;line-height:1;margin:0 0 7px}.sub{color:var(--muted);font-size:14px}
+.badge{font-size:12px;color:#cdd7e8;background:#1b2433;border:1px solid #2e3a4f;border-radius:999px;padding:7px 10px}
+.card{background:rgba(21,24,33,.93);border:1px solid rgba(255,255,255,.06);border-radius:24px;padding:18px;margin-bottom:14px;
+box-shadow:0 14px 35px rgba(0,0,0,.22);backdrop-filter:blur(18px)}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:7px}
+input,select{width:100%;border:0;outline:0;background:var(--panel2);color:var(--text);font-size:17px;
+border-radius:14px;padding:13px 14px;appearance:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.row{margin-bottom:14px}.row:last-child{margin:0}
+.segment{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;background:var(--panel2);padding:5px;border-radius:15px}
+.segment button{border:0;border-radius:11px;padding:10px 5px;background:transparent;color:var(--muted);font-size:13px}
+.segment button.active{background:#2a3448;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.hero{padding:21px;background:linear-gradient(145deg,#172234,#17202c 55%,#13211d)}
+.kicker{font-size:13px;color:var(--muted)}.time{font-size:45px;font-weight:750;letter-spacing:-1.8px;margin:5px 0 7px}
+.date{color:#c2c9d4}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:17px}
+.metric{background:rgba(255,255,255,.055);border-radius:16px;padding:12px}.metric span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+.metric strong{font-size:18px}.rule{margin-top:16px;padding-top:15px;border-top:1px solid var(--line);font-size:14px;line-height:1.6;color:#d7deea}
+.note{font-size:12px;color:var(--muted);line-height:1.55;padding:2px 4px}.hidden{display:none}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:14px}.switch{position:relative;width:48px;height:29px}
+.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;background:#303747;border-radius:20px;transition:.2s}
+.slider:before{content:"";position:absolute;width:23px;height:23px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s}
+.switch input:checked + .slider{background:var(--warn)}.switch input:checked + .slider:before{transform:translateX(19px)}
+.warn{margin-top:12px;padding:11px 12px;border-radius:13px;background:rgba(255,200,87,.1);color:#ffd77e;font-size:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>PilotKit</h1><div class="sub">飞行值勤期辅助核算</div></div>
+    <div class="badge">Air China · 03版</div>
+  </div>
+
+  <div class="card">
+    <div class="row"><label>签到日期与时间（北京时间）</label><input id="report" type="datetime-local"></div>
+    <div class="row"><label>机组配置</label>
+      <div class="segment" id="crewSeg">
+        <button data-v="standard" class="active">非扩编</button>
+        <button data-v="aug3">3人扩编</button>
+        <button data-v="aug4">4人扩编</button>
+      </div>
+    </div>
+    <div id="standardInputs" class="row"><label>航段数</label><input id="sectors" type="number" min="1" max="20" value="1"></div>
+    <div id="augInputs" class="row hidden"><label>休息设施等级</label>
+      <select id="facility"><option value="1">1级休息设施</option><option value="2">2级休息设施</option><option value="3">3级休息设施</option></select>
+    </div>
+    <div class="row toggle">
+      <div><div style="font-size:15px">起飞前意外运行延长</div><div class="sub">仅作情景核算，最多 +2 小时</div></div>
+      <label class="switch"><input id="extension" type="checkbox"><span class="slider"></span></label>
+    </div>
+    <div id="extensionWarn" class="warn hidden">延长不是自动权利，仅限符合手册规定的起飞前意外运行情况，并须满足次数、累积限制及机长与公司共同决定等条件。</div>
+  </div>
+
+  <div class="card hero">
+    <div class="kicker">执勤截止</div>
+    <div class="time" id="expiryTime">--:--</div>
+    <div class="date" id="expiryDate">请选择签到时间</div>
+    <div class="metrics">
+      <div class="metric"><span>最大飞行值勤期</span><strong id="fdp">--</strong></div>
+      <div class="metric"><span>最大飞行时间</span><strong id="flight">--</strong></div>
+    </div>
+    <div class="rule" id="ruleText">输入签到时间后自动计算。</div>
+  </div>
+
+  <div class="card">
+    <div class="kicker">下一次最早签到（基础提示）</div>
+    <div style="font-size:25px;font-weight:700;margin-top:7px" id="nextReport">--</div>
+    <div class="sub" style="margin-top:8px">当前仅按飞行值勤期结束后连续休息 10 小时计算，未自动判断 144 小时内连续 48 小时休息、跨 6 小时时区等附加要求。</div>
+  </div>
+
+  <div class="note">仅供辅助核算。最终以现行受控运行手册、公司系统、运行控制和机长决定为准。航段限制数不包括因备降产生的航段。</div>
+</div>
+<script>
+let crew="standard";
+const report=document.getElementById("report"), sectors=document.getElementById("sectors"),
+facility=document.getElementById("facility"), extension=document.getElementById("extension");
+
+function pad(n){return String(n).padStart(2,"0")}
+function fmtDate(d){return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`}
+function fmtFull(d){return `${fmtDate(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`}
+function setDefault(){
+ const d=new Date(); d.setSeconds(0,0);
+ report.value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function calculate(){
+ if(!report.value)return;
+ const d=new Date(report.value), h=d.getHours();
+ let duty=0, flight=0, rule="";
+ if(crew==="standard"){
+   const s=Math.max(1,parseInt(sectors.value||1));
+   const col=s<=4?0:s===5?1:s===6?2:3;
+   const rows=h<=4?[12,11,10,9]:h<=11?[14,13,12,11]:[13,12,11,10];
+   duty=rows[col];
+   flight=(h<=4||h>=20)?8:9;
+   const band=h<=4?"00:00–04:59":h<=11?"05:00–11:59":"12:00–23:59";
+   const sb=s<=4?"1–4个航段":s===5?"5个航段":s===6?"6个航段":"7个或以上航段";
+   rule=`依据 3.2.1 表A、3.2.2.1 表B：非扩编机组，签到属于 ${band}，${sb}，基础最大飞行值勤期 ${duty} 小时。`;
+ }else{
+   const f=parseInt(facility.value), p=crew==="aug3"?3:4;
+   const table={1:{3:18,4:20},2:{3:17,4:19},3:{3:16,4:18}};
+   duty=table[f][p]; flight=p===3?13:17;
+   rule=`依据 3.2.1、3.2.2.2 表C：${p}名驾驶员，${f}级休息设施，基础最大飞行值勤期 ${duty} 小时。`;
+ }
+ if(extension.checked){duty+=2;rule+=` 当前情景加入起飞前意外运行延长 2 小时。`;}
+ const exp=new Date(d.getTime()+duty*3600000);
+ const next=new Date(exp.getTime()+10*3600000);
+ document.getElementById("expiryTime").textContent=`${pad(exp.getHours())}:${pad(exp.getMinutes())}`;
+ document.getElementById("expiryDate").textContent=fmtDate(exp);
+ document.getElementById("fdp").textContent=`${duty}小时`;
+ document.getElementById("flight").textContent=`${flight}小时`;
+ document.getElementById("ruleText").textContent=rule;
+ document.getElementById("nextReport").textContent=fmtFull(next);
+}
+document.querySelectorAll("#crewSeg button").forEach(b=>b.onclick=()=>{
+ crew=b.dataset.v;
+ document.querySelectorAll("#crewSeg button").forEach(x=>x.classList.toggle("active",x===b));
+ document.getElementById("standardInputs").classList.toggle("hidden",crew!=="standard");
+ document.getElementById("augInputs").classList.toggle("hidden",crew==="standard");
+ calculate();
+});
+[report,sectors,facility,extension].forEach(x=>x.addEventListener("input",calculate));
+extension.addEventListener("change",()=>{
+ document.getElementById("extensionWarn").classList.toggle("hidden",!extension.checked);
+ calculate();
+});
+setDefault();calculate();
+</script>
+</body>
+</html>
