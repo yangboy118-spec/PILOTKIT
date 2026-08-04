@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PilotKit">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>PilotKit</title>
+<style>
+:root{--bg:#0b0d12;--panel:#151821;--panel2:#1b1f2a;--text:#f5f7fb;--muted:#9aa3b2;--accent:#73a7ff;--ok:#55d98b;--warn:#ffc857;--danger:#ff6b6b;--line:#2a3040}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0b0d12,#111722 60%,#0b0d12);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif;min-height:100vh}
+.wrap{max-width:620px;margin:auto;padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 90px)}
+.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px} h1{font-size:34px;line-height:1;margin:0 0 7px}.sub{color:var(--muted);font-size:13px}
+.badge{font-size:11px;color:#cdd7e8;background:#1b2433;border:1px solid #2e3a4f;border-radius:999px;padding:7px 10px}
+.card{background:rgba(21,24,33,.94);border:1px solid rgba(255,255,255,.06);border-radius:24px;padding:18px;margin-bottom:14px;box-shadow:0 14px 35px rgba(0,0,0,.22)}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:7px} input,select,button{font:inherit}
+input,select{width:100%;border:0;outline:0;background:var(--panel2);color:var(--text);font-size:17px;border-radius:14px;padding:13px 14px;appearance:none}
+.row{margin-bottom:14px}.row:last-child{margin:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.segment{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;background:var(--panel2);padding:5px;border-radius:15px}
+.segment button{border:0;border-radius:11px;padding:10px 5px;background:transparent;color:var(--muted);font-size:13px}.segment button.active{background:#2a3448;color:#fff}
+.hero{padding:21px;background:linear-gradient(145deg,#172234,#17202c 55%,#13211d)}.kicker{font-size:13px;color:var(--muted)}
+.time{font-size:45px;font-weight:760;letter-spacing:-1.8px;margin:5px 0 7px}.date{color:#c2c9d4}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:17px}
+.metric{background:rgba(255,255,255,.055);border-radius:16px;padding:12px}.metric span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.metric strong{font-size:18px}
+.rule{margin-top:16px;padding-top:15px;border-top:1px solid var(--line);font-size:14px;line-height:1.6;color:#d7deea}
+.note{font-size:12px;color:var(--muted);line-height:1.55;padding:2px 4px}.hidden{display:none!important}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:14px}.switch{position:relative;width:48px;height:29px}.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#303747;border-radius:20px;transition:.2s}.slider:before{content:"";position:absolute;width:23px;height:23px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s}
+.switch input:checked + .slider{background:var(--warn)}.switch input:checked + .slider:before{transform:translateX(19px)}
+.warn{margin-top:12px;padding:11px 12px;border-radius:13px;background:rgba(255,200,87,.1);color:#ffd77e;font-size:12px;line-height:1.5}
+.primary{width:100%;border:0;border-radius:15px;padding:13px;background:var(--accent);color:#07101e;font-weight:700}.secondary{border:0;border-radius:12px;padding:9px 12px;background:#252c3a;color:var(--text)}
+.tabs{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 10px);transform:translateX(-50%);width:min(94%,590px);display:grid;grid-template-columns:repeat(3,1fr);background:rgba(20,23,31,.92);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:6px;z-index:4}
+.tabs button{border:0;background:transparent;color:var(--muted);padding:10px;border-radius:14px}.tabs button.active{background:#293345;color:white}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{padding:14px;border-radius:17px;background:var(--panel2)}.stat small{display:block;color:var(--muted);margin-bottom:6px}.stat b{font-size:23px}.progress{height:7px;background:#2a3040;border-radius:9px;margin-top:9px;overflow:hidden}.progress i{display:block;height:100%;background:var(--ok);border-radius:9px}.progress i.warnbar{background:var(--warn)}.progress i.dangerbar{background:var(--danger)}
+.record{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.record:last-child{border-bottom:0}.record strong{display:block}.record small{color:var(--muted)}.delete{border:0;background:transparent;color:var(--danger);font-size:13px}
+.status{font-size:12px;border-radius:999px;padding:5px 8px;background:#243128;color:#7ce3a4}.status.bad{background:#392326;color:#ff9191}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div><h1>PilotKit</h1><div class="sub">值勤计算与个人飞行经历记录</div></div><div class="badge">v0.4 · Air China</div></div>
+
+  <section id="calcPage">
+    <div class="card">
+      <div class="row"><label>签到日期与时间（北京时间）</label><input id="report" type="datetime-local"></div>
+      <div class="row"><label>机组配置</label><div class="segment" id="crewSeg">
+        <button data-v="standard" class="active">非扩编</button><button data-v="aug3">3人扩编</button><button data-v="aug4">4人扩编</button>
+      </div></div>
+      <div id="standardInputs" class="row"><label>航段数</label><input id="sectors" type="number" min="1" max="20" value="1"></div>
+      <div id="augInputs" class="row hidden"><label>休息设施等级</label><select id="facility"><option value="1">1级休息设施</option><option value="2">2级休息设施</option><option value="3">3级休息设施</option></select></div>
+      <div class="row toggle"><div><div style="font-size:15px">起飞前意外运行延长</div><div class="sub">仅作情景核算，最多 +2 小时</div></div><label class="switch"><input id="extension" type="checkbox"><span class="slider"></span></label></div>
+      <div id="extensionWarn" class="warn hidden">延长不是自动权利，仅限符合手册规定的起飞前意外运行情况，并须满足次数、累积限制及机长与公司共同决定等条件。</div>
+    </div>
+
+    <div class="card hero">
+      <div class="kicker">执勤截止</div><div class="time" id="expiryTime">--:--</div><div class="date" id="expiryDate">请选择签到时间</div>
+      <div class="metrics"><div class="metric"><span>最大飞行值勤期</span><strong id="fdp">--</strong></div><div class="metric"><span>最大飞行时间</span><strong id="flight">--</strong></div></div>
+      <div class="rule" id="ruleText">输入签到时间后自动计算。</div>
+    </div>
+
+    <div class="card"><div class="kicker">下一次最早签到（基础提示）</div><div style="font-size:25px;font-weight:700;margin-top:7px" id="nextReport">--</div>
+      <div class="sub" style="margin-top:8px">仅按前一飞行值勤期结束后连续休息 10 小时计算；其他附加休息要求需在“限制”页核对。</div>
+    </div>
+    <div class="note">仅供辅助核算。最终以现行受控运行手册、公司系统、运行控制和机长决定为准。</div>
+  </section>
+
+  <section id="logPage" class="hidden">
+    <div class="card">
+      <div class="grid row">
+        <div><label>航班日期</label><input id="logDate" type="date"></div>
+        <div><label>航班号</label><input id="flightNo" placeholder="例如 CA839"></div>
+      </div>
+      <div class="grid row">
+        <div><label>出发机场</label><input id="origin" placeholder="PEK"></div>
+        <div><label>到达机场</label><input id="destination" placeholder="BCN"></div>
+      </div>
+
+      <div class="grid row">
+        <div><label>推出时间（OFF BLOCK）</label><input id="offBlock" type="time"></div>
+        <div><label>起飞时间（TAKEOFF）</label><input id="takeoff" type="time"></div>
+      </div>
+      <div class="grid row">
+        <div><label>落地时间（LANDING）</label><input id="landing" type="time"></div>
+        <div><label>进位时间（ON BLOCK）</label><input id="onBlock" type="time"></div>
+      </div>
+
+      <div class="grid row">
+        <div><label>实际飞行值勤期</label><input id="actualFdp" type="time" value="10:00"></div>
+        <div><label>起降次数</label><input id="landings" type="number" min="0" max="20" value="1"></div>
+      </div>
+
+      <div class="row"><label>机组人员姓名</label><input id="crewNames" placeholder="例如：张三机长、李四副驾驶"></div>
+      <div class="row"><label>教员讲评 / 飞行心得 / 备注</label><textarea id="logNote" placeholder="记录讲评、心得、特殊情况……" style="width:100%;min-height:120px;resize:vertical;border:0;outline:0;background:var(--panel2);color:var(--text);font-size:16px;border-radius:14px;padding:13px 14px"></textarea></div>
+
+      <div class="card" style="margin:0 0 14px;background:var(--panel2);box-shadow:none">
+        <div class="kicker">自动汇总</div>
+        <div class="statgrid" style="margin-top:12px">
+          <div class="stat"><small>经历时间（Block）</small><b id="previewBlock">--:--</b></div>
+          <div class="stat"><small>飞行时间（Airborne）</small><b id="previewFlight">--:--</b></div>
+          <div class="stat"><small>滑出时间</small><b id="previewTaxiOut">--:--</b></div>
+          <div class="stat"><small>滑入时间</small><b id="previewTaxiIn">--:--</b></div>
+        </div>
+      </div>
+
+      <button class="primary" id="saveLog">保存航班记录</button>
+    </div>
+
+    <div class="card">
+      <div class="kicker">累计经历</div>
+      <div class="statgrid" style="margin-top:12px">
+        <div class="stat"><small>本月经历时间</small><b id="monthBlock">0:00</b></div>
+        <div class="stat"><small>本年经历时间</small><b id="yearBlock">0:00</b></div>
+        <div class="stat"><small>本月飞行时间</small><b id="monthFlight">0:00</b><div class="progress"><i id="monthFlightBar"></i></div><small>上限 100:00</small></div>
+        <div class="stat"><small>本年飞行时间</small><b id="yearFlight">0:00</b><div class="progress"><i id="yearFlightBar"></i></div><small>上限 900:00</small></div>
+        <div class="stat"><small>连续7日 FDP</small><b id="sevenFdp">0:00</b><div class="progress"><i id="sevenBar"></i></div><small>上限 60:00</small></div>
+        <div class="stat"><small>本月 FDP</small><b id="monthFdp">0:00</b><div class="progress"><i id="monthFdpBar"></i></div><small>上限 210:00</small></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div class="kicker">备份与恢复</div>
+        <div style="display:flex;gap:7px">
+          <button class="secondary" id="exportLogs">导出备份</button>
+          <button class="secondary" id="importLogsBtn">导入</button>
+          <input id="importLogsFile" type="file" accept="application/json,.json" class="hidden">
+        </div>
+      </div>
+      <div class="sub" style="margin-top:10px">导出的 JSON 文件可保存到“文件”App中的 iCloud Drive。导入后可在另一台设备恢复记录。</div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="kicker">航班记录</div><button class="secondary" id="clearLogs">清空</button>
+      </div>
+      <div id="records"></div>
+    </div>
+  </section>
+
+  <section id="limitsPage" class="hidden">
+    <div class="card"><div class="kicker">最低休息</div><h2>连续 10 小时</h2><div class="sub">前一飞行值勤期结束至下一飞行值勤期开始之间，至少连续休息 10 小时。</div></div>
+    <div class="card"><div class="kicker">144 小时窗口</div><h2>至少连续 48 小时</h2><div class="sub">执行飞行任务或主备份前的 144 小时内，应安排一个至少连续 48 小时的休息期。</div></div>
+    <div class="card"><div class="kicker">连续运行日</div><h2>第 5 日不得安排飞行任务</h2><div class="sub">当终止地点与基地时差少于 6 小时，飞行值勤期和主备份达到连续 4 个日历日后，第 5 个日历日不得安排飞行任务；前续航班导致的备降除外。</div></div>
+    <div class="card"><div class="kicker">跨时区返回基地</div><h2>至少连续 48 小时</h2><div class="sub">终止地点与基地相差 6 小时或以上时，返回基地后、进入下一值勤期前，应安排至少连续 48 小时休息。</div></div>
+    <div class="note">本页展示手册附加休息要求，目前尚未根据航线、基地、主备份和过去 144 小时排班自动判定。</div>
+  </section>
+</div>
+
+<nav class="tabs"><button data-page="calcPage" class="active">计算</button><button data-page="logPage">记录</button><button data-page="limitsPage">限制</button></nav>
+<script>
+let crew="standard", currentCalc={};
+const $=id=>document.getElementById(id), report=$("report"),sectors=$("sectors"),facility=$("facility"),extension=$("extension");
+function pad(n){return String(n).padStart(2,"0")} function fmtDate(d){return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`}
+function fmtFull(d){return `${fmtDate(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`} function setDefault(){const d=new Date();d.setSeconds(0,0);report.value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;$("logDate").value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function calculate(){if(!report.value)return;const d=new Date(report.value),h=d.getHours();let duty=0,flight=0,rule="";
+if(crew==="standard"){const s=Math.max(1,parseInt(sectors.value||1)),col=s<=4?0:s===5?1:s===6?2:3,rows=h<=4?[12,11,10,9]:h<=11?[14,13,12,11]:[13,12,11,10];duty=rows[col];flight=(h<=4||h>=20)?8:9;const band=h<=4?"00:00–04:59":h<=11?"05:00–11:59":"12:00–23:59",sb=s<=4?"1–4个航段":s===5?"5个航段":s===6?"6个航段":"7个或以上航段";rule=`依据 3.2.1 表A、3.2.2.1 表B：非扩编机组，签到属于 ${band}，${sb}，基础最大飞行值勤期 ${duty} 小时。`}
+else{const f=parseInt(facility.value),p=crew==="aug3"?3:4,table={1:{3:18,4:20},2:{3:17,4:19},3:{3:16,4:18}};duty=table[f][p];flight=p===3?13:17;rule=`依据 3.2.1、3.2.2.2 表C：${p}名驾驶员，${f}级休息设施，基础最大飞行值勤期 ${duty} 小时。`}
+if(extension.checked){duty+=2;rule+=" 当前情景加入起飞前意外运行延长 2 小时。"}const exp=new Date(d.getTime()+duty*3600000),next=new Date(exp.getTime()+10*3600000);$("expiryTime").textContent=`${pad(exp.getHours())}:${pad(exp.getMinutes())}`;$("expiryDate").textContent=fmtDate(exp);$("fdp").textContent=`${duty}小时`;$("flight").textContent=`${flight}小时`;$("ruleText").textContent=rule;$("nextReport").textContent=fmtFull(next);currentCalc={duty,flight,exp}}
+document.querySelectorAll("#crewSeg button").forEach(b=>b.onclick=()=>{crew=b.dataset.v;document.querySelectorAll("#crewSeg button").forEach(x=>x.classList.toggle("active",x===b));$("standardInputs").classList.toggle("hidden",crew!=="standard");$("augInputs").classList.toggle("hidden",crew==="standard");calculate()});
+[report,sectors,facility,extension].forEach(x=>x.addEventListener("input",calculate));extension.addEventListener("change",()=>{$("extensionWarn").classList.toggle("hidden",!extension.checked);calculate()});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));["calcPage","logPage","limitsPage"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.page));if(b.dataset.page==="logPage")renderLogs()});
+
+function toMin(t){
+  if(!t) return null;
+  const [h,m]=t.split(":").map(Number);
+  return h*60+m;
+}
+function minText(m){
+  if(m===null || Number.isNaN(m)) return "--:--";
+  return `${Math.floor(m/60)}:${pad(m%60)}`;
+}
+function elapsed(start,end){
+  if(start===null || end===null) return null;
+  return end>=start ? end-start : (24*60-start)+end;
+}
+function logs(){return JSON.parse(localStorage.getItem("pilotkit.logs")||"[]")}
+function save(arr){localStorage.setItem("pilotkit.logs",JSON.stringify(arr))}
+function calculateLogPreview(){
+  const off=toMin($("offBlock").value), take=toMin($("takeoff").value),
+        land=toMin($("landing").value), on=toMin($("onBlock").value);
+  $("previewBlock").textContent=minText(elapsed(off,on));
+  $("previewFlight").textContent=minText(elapsed(take,land));
+  $("previewTaxiOut").textContent=minText(elapsed(off,take));
+  $("previewTaxiIn").textContent=minText(elapsed(land,on));
+}
+["offBlock","takeoff","landing","onBlock"].forEach(id=>$(id).addEventListener("input",calculateLogPreview));
+
+$("saveLog").onclick=()=>{
+  const off=toMin($("offBlock").value), take=toMin($("takeoff").value),
+        land=toMin($("landing").value), on=toMin($("onBlock").value);
+  const block=elapsed(off,on), flight=elapsed(take,land);
+  if(!$("logDate").value || !$("flightNo").value.trim()){
+    alert("请至少填写航班日期和航班号。"); return;
+  }
+  if(block===null || flight===null){
+    alert("请完整填写推出、起飞、落地和进位时间。"); return;
+  }
+  const arr=logs();
+  arr.push({
+    id:Date.now(),
+    date:$("logDate").value,
+    flightNo:$("flightNo").value.trim().toUpperCase(),
+    origin:$("origin").value.trim().toUpperCase(),
+    destination:$("destination").value.trim().toUpperCase(),
+    offBlock:$("offBlock").value,
+    takeoff:$("takeoff").value,
+    landing:$("landing").value,
+    onBlock:$("onBlock").value,
+    block,
+    flight,
+    taxiOut:elapsed(off,take),
+    taxiIn:elapsed(land,on),
+    fdp:toMin($("actualFdp").value)||0,
+    landings:Math.max(0,parseInt($("landings").value||0)),
+    crew:$("crewNames").value.trim(),
+    note:$("logNote").value.trim()
+  });
+  save(arr);
+  ["flightNo","origin","destination","offBlock","takeoff","landing","onBlock","crewNames","logNote"].forEach(id=>$(id).value="");
+  $("landings").value="1";
+  calculateLogPreview();
+  renderLogs();
+  alert("航班记录已保存。");
+};
+$("clearLogs").onclick=()=>{if(confirm("确认清空全部航班记录？此操作无法撤销。")){save([]);renderLogs()}};
+
+$("exportLogs").onclick=()=>{
+  const payload={
+    app:"PilotKit",
+    version:"0.4",
+    exportedAt:new Date().toISOString(),
+    records:logs()
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`PilotKit-Backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+
+$("importLogsBtn").onclick=()=>$("importLogsFile").click();
+$("importLogsFile").onchange=async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  try{
+    const data=JSON.parse(await file.text());
+    const imported=Array.isArray(data)?data:data.records;
+    if(!Array.isArray(imported)) throw new Error();
+    const existing=logs();
+    const byId=new Map(existing.map(x=>[x.id,x]));
+    imported.forEach(x=>byId.set(x.id||Date.now()+Math.random(),x));
+    save([...byId.values()]);
+    renderLogs();
+    alert(`已导入 ${imported.length} 条记录。`);
+  }catch{
+    alert("备份文件格式不正确。");
+  }
+  e.target.value="";
+};
+
+function setBar(id,val,max){
+  const p=Math.min(100,val/max*100),el=$(id);
+  el.style.width=p+"%";
+  el.className=p>=100?"dangerbar":p>=85?"warnbar":"";
+}
+function renderLogs(){
+  const arr=logs().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id),
+        now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),
+        start7=new Date(today);
+  start7.setDate(start7.getDate()-6);
+  let s7=0,mf=0,mfdp=0,yf=0,monthBlock=0,yearBlock=0;
+  arr.forEach(r=>{
+    const d=new Date(r.date+"T12:00:00");
+    if(d>=start7&&d<=new Date(today.getTime()+86400000-1))s7+=(r.fdp||0);
+    if(d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()){
+      mfdp+=(r.fdp||0); mf+=(r.flight||0); monthBlock+=(r.block||0);
+    }
+    if(d.getFullYear()===now.getFullYear()){
+      yf+=(r.flight||0); yearBlock+=(r.block||0);
+    }
+  });
+  $("sevenFdp").textContent=minText(s7);
+  $("monthFdp").textContent=minText(mfdp);
+  $("monthFlight").textContent=minText(mf);
+  $("yearFlight").textContent=minText(yf);
+  $("monthBlock").textContent=minText(monthBlock);
+  $("yearBlock").textContent=minText(yearBlock);
+  setBar("sevenBar",s7,3600); setBar("monthFdpBar",mfdp,12600);
+  setBar("monthFlightBar",mf,6000); setBar("yearFlightBar",yf,54000);
+
+  $("records").innerHTML=arr.length?arr.map(r=>`
+    <div class="record" style="display:block">
+      <div style="display:flex;justify-content:space-between;gap:12px">
+        <div>
+          <strong>${r.flightNo||"未命名航班"} ${r.origin||""}${r.origin||r.destination?" → ":""}${r.destination||""}</strong>
+          <small>${r.date} · 经历 ${minText(r.block||0)} · 飞行 ${minText(r.flight||0)} · ${r.landings||0} 次落地</small>
+        </div>
+        <button class="delete" onclick="delLog(${r.id})">删除</button>
+      </div>
+      <div class="sub" style="margin-top:8px">推出 ${r.offBlock||"--:--"} · 起飞 ${r.takeoff||"--:--"} · 落地 ${r.landing||"--:--"} · 进位 ${r.onBlock||"--:--"}</div>
+      ${r.crew?`<div class="sub" style="margin-top:6px">机组：${escapeHtml(r.crew)}</div>`:""}
+      ${r.note?`<div style="margin-top:9px;padding:10px 12px;background:var(--panel2);border-radius:12px;font-size:13px;line-height:1.55;white-space:pre-wrap">${escapeHtml(r.note)}</div>`:""}
+    </div>`).join(""):'<div class="sub" style="padding:18px 0">暂无航班记录</div>';
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+window.delLog=id=>{if(confirm("删除这条航班记录？")){save(logs().filter(x=>x.id!==id));renderLogs()}}
+if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+setDefault();calculate();calculateLogPreview();renderLogs();
+</script>
+</body>
+</html>
