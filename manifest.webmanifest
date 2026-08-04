@@ -1,7 +1,7 @@
 {
-  "name": "PilotKit v0.4",
-  "short_name": "PilotKit",
-  "start_url": "./",
+  "name": "Pilog",
+  "short_name": "Pilog",
+  "start_url": "./?v=070",
   "display": "standalone",
   "background_color": "#0b0d12",
   "theme_color": "#0b0d12",

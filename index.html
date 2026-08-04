@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#0b0d12">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PilotKit">
+<meta name="apple-mobile-web-app-title" content="Pilog">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
-<title>PilotKit</title>
+<title>Pilog</title>
 <style>
 :root{--bg:#0b0d12;--panel:#151821;--panel2:#1b1f2a;--text:#f5f7fb;--muted:#9aa3b2;--accent:#73a7ff;--ok:#55d98b;--warn:#ffc857;--danger:#ff6b6b;--line:#2a3040}
 *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0b0d12,#111722 60%,#0b0d12);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif;min-height:100vh}
@@ -37,11 +37,23 @@ input,select{width:100%;border:0;outline:0;background:var(--panel2);color:var(--
 .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{padding:14px;border-radius:17px;background:var(--panel2)}.stat small{display:block;color:var(--muted);margin-bottom:6px}.stat b{font-size:23px}.progress{height:7px;background:#2a3040;border-radius:9px;margin-top:9px;overflow:hidden}.progress i{display:block;height:100%;background:var(--ok);border-radius:9px}.progress i.warnbar{background:var(--warn)}.progress i.dangerbar{background:var(--danger)}
 .record{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.record:last-child{border-bottom:0}.record strong{display:block}.record small{color:var(--muted)}.delete{border:0;background:transparent;color:var(--danger);font-size:13px}
 .status{font-size:12px;border-radius:999px;padding:5px 8px;background:#243128;color:#7ce3a4}.status.bad{background:#392326;color:#ff9191}
+
+.leg-card{background:var(--panel2);border-radius:18px;padding:14px;margin-bottom:12px}
+.leg-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.route-line{font-size:19px;font-weight:700;letter-spacing:.3px}
+.map-wrap{position:relative;border-radius:22px;overflow:hidden;background:#111722}
+.map-wrap img{display:block;width:100%;height:auto}
+#routeOverlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.map-filter{display:flex;gap:7px;margin:12px 0}
+.map-filter button{flex:1;border:0;border-radius:11px;padding:9px;background:var(--panel2);color:var(--muted)}
+.map-filter button.active{background:#2a3448;color:#fff}
+.airport-warning{font-size:12px;color:#ffd77e;margin-top:9px;line-height:1.5}
+textarea{font-family:inherit}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div><h1>PilotKit</h1><div class="sub">值勤计算与个人飞行经历记录</div></div><div class="badge">v0.4 · Air China</div></div>
+  <div class="top"><div><h1>Pilog</h1><div class="sub">飞行日志、值勤计算与飞行人生</div></div><div class="badge">v0.7 · Air China</div></div>
 
   <section id="calcPage">
     <div class="card">
@@ -70,54 +82,43 @@ input,select{width:100%;border:0;outline:0;background:var(--panel2);color:var(--
   <section id="logPage" class="hidden">
     <div class="card">
       <div class="grid row">
-        <div><label>航班日期</label><input id="logDate" type="date"></div>
+        <div><label>任务日期</label><input id="logDate" type="date"></div>
         <div><label>航班号</label><input id="flightNo" placeholder="例如 CA839"></div>
       </div>
       <div class="grid row">
-        <div><label>出发机场</label><input id="origin" placeholder="PEK"></div>
-        <div><label>到达机场</label><input id="destination" placeholder="BCN"></div>
+        <div><label>机型（可选）</label><input id="aircraftType" placeholder="例如 B77W"></div>
+        <div><label>机号（可选）</label><input id="registration" placeholder="例如 B-20A5"></div>
       </div>
-
-      <div class="grid row">
-        <div><label>推出时间（OFF BLOCK）</label><input id="offBlock" type="time"></div>
-        <div><label>起飞时间（TAKEOFF）</label><input id="takeoff" type="time"></div>
-      </div>
-      <div class="grid row">
-        <div><label>落地时间（LANDING）</label><input id="landing" type="time"></div>
-        <div><label>进位时间（ON BLOCK）</label><input id="onBlock" type="time"></div>
-      </div>
-
+      <div class="row"><label>机组人员姓名</label><input id="crewNames" placeholder="多人可用顿号或逗号分隔"></div>
       <div class="grid row">
         <div><label>实际飞行值勤期</label><input id="actualFdp" type="time" value="10:00"></div>
-        <div><label>起降次数</label><input id="landings" type="number" min="0" max="20" value="1"></div>
+        <div><label>签到时间（可选）</label><input id="dutyReportTime" type="time"></div>
       </div>
 
-      <div class="row"><label>机组人员姓名</label><input id="crewNames" placeholder="例如：张三机长、李四副驾驶"></div>
-      <div class="row"><label>教员讲评 / 飞行心得 / 备注</label><textarea id="logNote" placeholder="记录讲评、心得、特殊情况……" style="width:100%;min-height:120px;resize:vertical;border:0;outline:0;background:var(--panel2);color:var(--text);font-size:16px;border-radius:14px;padding:13px 14px"></textarea></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px">
+        <div><strong>航段</strong><div class="sub">支持联程、备降后继续执行和同号多航段</div></div>
+        <button class="secondary" id="addLeg">＋ 添加航段</button>
+      </div>
+      <div id="legsContainer"></div>
+
+      <div class="row"><label>教员讲评 / 飞行心得 / 备注</label>
+        <textarea id="logNote" placeholder="记录讲评、心得、特殊情况……" style="width:100%;min-height:120px;resize:vertical;border:0;outline:0;background:var(--panel2);color:var(--text);font-size:16px;border-radius:14px;padding:13px 14px"></textarea>
+      </div>
 
       <div class="card" style="margin:0 0 14px;background:var(--panel2);box-shadow:none">
-        <div class="kicker">自动汇总</div>
+        <div class="kicker">本次任务自动汇总</div>
         <div class="statgrid" style="margin-top:12px">
-          <div class="stat"><small>经历时间（Block）</small><b id="previewBlock">--:--</b></div>
-          <div class="stat"><small>飞行时间（Airborne）</small><b id="previewFlight">--:--</b></div>
-          <div class="stat"><small>滑出时间</small><b id="previewTaxiOut">--:--</b></div>
-          <div class="stat"><small>滑入时间</small><b id="previewTaxiIn">--:--</b></div>
+          <div class="stat"><small>计入本人经历</small><b id="previewCredited">0:00</b></div>
+          <div class="stat"><small>夜航时间</small><b id="previewNight">0:00</b></div>
+          <div class="stat"><small>总 Block</small><b id="previewBlock">0:00</b></div>
+          <div class="stat"><small>总飞行时间</small><b id="previewFlight">0:00</b></div>
+          <div class="stat"><small>总航段数</small><b id="previewLegs">1</b></div>
+          <div class="stat"><small>总起降次数</small><b id="previewLandings">1</b></div>
+          <div class="stat"><small>已填写旅客</small><b id="previewPassengers">0</b></div>
+          <div class="stat"><small>预计航程距离</small><b id="previewDistance">0 km</b></div>
         </div>
       </div>
-
-      <button class="primary" id="saveLog">保存航班记录</button>
-    </div>
-
-    <div class="card">
-      <div class="kicker">累计经历</div>
-      <div class="statgrid" style="margin-top:12px">
-        <div class="stat"><small>本月经历时间</small><b id="monthBlock">0:00</b></div>
-        <div class="stat"><small>本年经历时间</small><b id="yearBlock">0:00</b></div>
-        <div class="stat"><small>本月飞行时间</small><b id="monthFlight">0:00</b><div class="progress"><i id="monthFlightBar"></i></div><small>上限 100:00</small></div>
-        <div class="stat"><small>本年飞行时间</small><b id="yearFlight">0:00</b><div class="progress"><i id="yearFlightBar"></i></div><small>上限 900:00</small></div>
-        <div class="stat"><small>连续7日 FDP</small><b id="sevenFdp">0:00</b><div class="progress"><i id="sevenBar"></i></div><small>上限 60:00</small></div>
-        <div class="stat"><small>本月 FDP</small><b id="monthFdp">0:00</b><div class="progress"><i id="monthFdpBar"></i></div><small>上限 210:00</small></div>
-      </div>
+      <button class="primary" id="saveLog">保存任务记录</button>
     </div>
 
     <div class="card">
@@ -129,14 +130,58 @@ input,select{width:100%;border:0;outline:0;background:var(--panel2);color:var(--
           <input id="importLogsFile" type="file" accept="application/json,.json" class="hidden">
         </div>
       </div>
-      <div class="sub" style="margin-top:10px">导出的 JSON 文件可保存到“文件”App中的 iCloud Drive。导入后可在另一台设备恢复记录。</div>
+      <div class="sub" style="margin-top:10px">备份文件可保存到 iCloud Drive。原生版以后可升级为 CloudKit 自动同步。</div>
     </div>
 
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="kicker">航班记录</div><button class="secondary" id="clearLogs">清空</button>
+        <div class="kicker">任务记录</div><button class="secondary" id="clearLogs">清空</button>
       </div>
       <div id="records"></div>
+    </div>
+  </section>
+
+  <section id="summaryPage" class="hidden">
+    <div class="card">
+      <div class="kicker">我的飞行人生</div>
+      <div class="map-filter">
+        <button data-range="month">本月</button>
+        <button data-range="year" class="active">本年</button>
+        <button data-range="all">全部</button>
+      </div>
+      <div class="map-wrap">
+        <img src="world-map.svg" alt="世界地图">
+        <svg id="routeOverlay" viewBox="0 0 1000 500" aria-label="飞行航线可视化"></svg>
+      </div>
+      <div id="airportWarning" class="airport-warning hidden"></div>
+    </div>
+
+    <div class="card">
+      <div class="kicker">经历汇总</div>
+      <div class="statgrid" style="margin-top:12px">
+        <div class="stat"><small>计入本人经历</small><b id="sumCredited">0:00</b></div>
+        <div class="stat"><small>夜航时间</small><b id="sumNight">0:00</b></div>
+        <div class="stat"><small>总 Block</small><b id="sumBlock">0:00</b></div>
+        <div class="stat"><small>飞行时间</small><b id="sumFlight">0:00</b></div>
+        <div class="stat"><small>航段数</small><b id="sumLegs">0</b></div>
+        <div class="stat"><small>起降次数</small><b id="sumLandings">0</b></div>
+        <div class="stat"><small>飞过的机场</small><b id="sumAirports">0</b></div>
+        <div class="stat"><small>不同航线</small><b id="sumRoutes">0</b></div>
+        <div class="stat"><small>累计运送旅客</small><b id="sumPassengers">0</b></div>
+        <div class="stat"><small>已填写旅客航段</small><b id="sumPassengerLegs">0</b></div>
+        <div class="stat"><small>累计航程</small><b id="sumDistance">0 km</b></div>
+        <div class="stat"><small>约绕地球</small><b id="sumEarthLoops">0 圈</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="kicker">运行限制统计</div>
+      <div class="statgrid" style="margin-top:12px">
+        <div class="stat"><small>连续7日 FDP</small><b id="sevenFdp">0:00</b><div class="progress"><i id="sevenBar"></i></div><small>上限 60:00</small></div>
+        <div class="stat"><small>本月 FDP</small><b id="monthFdp">0:00</b><div class="progress"><i id="monthFdpBar"></i></div><small>上限 210:00</small></div>
+        <div class="stat"><small>本月飞行时间</small><b id="monthFlight">0:00</b><div class="progress"><i id="monthFlightBar"></i></div><small>上限 100:00</small></div>
+        <div class="stat"><small>本年飞行时间</small><b id="yearFlight">0:00</b><div class="progress"><i id="yearFlightBar"></i></div><small>上限 900:00</small></div>
+      </div>
     </div>
   </section>
 
@@ -149,7 +194,7 @@ input,select{width:100%;border:0;outline:0;background:var(--panel2);color:var(--
   </section>
 </div>
 
-<nav class="tabs"><button data-page="calcPage" class="active">计算</button><button data-page="logPage">记录</button><button data-page="limitsPage">限制</button></nav>
+<nav class="tabs" style="grid-template-columns:repeat(4,1fr)"><button data-page="calcPage" class="active">计算</button><button data-page="logPage">记录</button><button data-page="summaryPage">汇总</button><button data-page="limitsPage">限制</button></nav>
 <script>
 let crew="standard", currentCalc={};
 const $=id=>document.getElementById(id), report=$("report"),sectors=$("sectors"),facility=$("facility"),extension=$("extension");
@@ -161,155 +206,263 @@ else{const f=parseInt(facility.value),p=crew==="aug3"?3:4,table={1:{3:18,4:20},2
 if(extension.checked){duty+=2;rule+=" 当前情景加入起飞前意外运行延长 2 小时。"}const exp=new Date(d.getTime()+duty*3600000),next=new Date(exp.getTime()+10*3600000);$("expiryTime").textContent=`${pad(exp.getHours())}:${pad(exp.getMinutes())}`;$("expiryDate").textContent=fmtDate(exp);$("fdp").textContent=`${duty}小时`;$("flight").textContent=`${flight}小时`;$("ruleText").textContent=rule;$("nextReport").textContent=fmtFull(next);currentCalc={duty,flight,exp}}
 document.querySelectorAll("#crewSeg button").forEach(b=>b.onclick=()=>{crew=b.dataset.v;document.querySelectorAll("#crewSeg button").forEach(x=>x.classList.toggle("active",x===b));$("standardInputs").classList.toggle("hidden",crew!=="standard");$("augInputs").classList.toggle("hidden",crew==="standard");calculate()});
 [report,sectors,facility,extension].forEach(x=>x.addEventListener("input",calculate));extension.addEventListener("change",()=>{$("extensionWarn").classList.toggle("hidden",!extension.checked);calculate()});
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));["calcPage","logPage","limitsPage"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.page));if(b.dataset.page==="logPage")renderLogs()});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));["calcPage","logPage","summaryPage","limitsPage"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.page));if(b.dataset.page==="logPage")renderRecords();if(b.dataset.page==="summaryPage")renderSummary()});
+
+
+const AIRPORTS={"PEK": [116.5975, 40.0799], "PKX": [116.4109, 39.5098], "PVG": [121.8052, 31.1443], "SHA": [121.3363, 31.1979], "CAN": [113.2988, 23.3924], "SZX": [113.8107, 22.6393], "CTU": [103.9471, 30.5785], "TFU": [104.4413, 30.3125], "XIY": [108.7516, 34.4471], "HGH": [120.4344, 30.2295], "NKG": [118.862, 31.742], "WUH": [114.2081, 30.7838], "CKG": [106.6417, 29.7192], "KMG": [102.9292, 25.1019], "URC": [87.4742, 43.9071], "HKG": [113.9146, 22.308], "TPE": [121.2328, 25.0777], "NRT": [140.3929, 35.772], "HND": [139.7798, 35.5494], "KIX": [135.244, 34.4347], "ICN": [126.4505, 37.4602], "SIN": [103.994, 1.3644], "BKK": [100.7501, 13.69], "SYD": [151.1772, -33.9461], "MEL": [144.843, -37.6733], "AKL": [174.785, -37.0082], "LHR": [-0.4543, 51.47], "CDG": [2.55, 49.0097], "FRA": [8.5706, 50.0333], "MUC": [11.7861, 48.3538], "FCO": [12.2508, 41.8003], "MXP": [8.7281, 45.6306], "MAD": [-3.5676, 40.4983], "BCN": [2.0785, 41.2974], "VIE": [16.5697, 48.1103], "ZRH": [8.5492, 47.4581], "GVA": [6.1089, 46.2381], "CPH": [12.656, 55.618], "ARN": [17.9186, 59.6519], "ATH": [23.9445, 37.9364], "IST": [28.8146, 41.2753], "DXB": [55.3644, 25.2532], "JFK": [-73.7781, 40.6413], "EWR": [-74.1745, 40.6895], "LAX": [-118.4085, 33.9416], "SFO": [-122.379, 37.6213], "YVR": [-123.184, 49.1967], "YYZ": [-79.6306, 43.6777], "IAD": [-77.4565, 38.9531], "IAH": [-95.3414, 29.9902], "GRU": [-46.4731, -23.4356], "JNB": [28.246, -26.1337], "HNL": [-157.9224, 21.3187], "DEL": [77.1031, 28.5562], "BOM": [72.8679, 19.0896], "KTM": [85.3591, 27.6966], "ULN": [106.7666, 47.8431], "SVO": [37.4146, 55.9726], "LED": [30.2625, 59.8003], "WAW": [20.9671, 52.1657], "BUD": [19.2611, 47.4298], "PRG": [14.2632, 50.1008]};
+let legSeq=0, mapRange="year";
 
 function toMin(t){
-  if(!t) return null;
-  const [h,m]=t.split(":").map(Number);
-  return h*60+m;
+  if(!t)return null;
+  const [h,m]=t.split(":").map(Number); return h*60+m;
 }
 function minText(m){
-  if(m===null || Number.isNaN(m)) return "--:--";
+  if(m===null||Number.isNaN(m))return "--:--";
   return `${Math.floor(m/60)}:${pad(m%60)}`;
 }
 function elapsed(start,end){
-  if(start===null || end===null) return null;
-  return end>=start ? end-start : (24*60-start)+end;
+  if(start===null||end===null)return null;
+  return end>=start?end-start:(1440-start)+end;
 }
-function logs(){return JSON.parse(localStorage.getItem("pilotkit.logs")||"[]")}
-function save(arr){localStorage.setItem("pilotkit.logs",JSON.stringify(arr))}
-function calculateLogPreview(){
-  const off=toMin($("offBlock").value), take=toMin($("takeoff").value),
-        land=toMin($("landing").value), on=toMin($("onBlock").value);
-  $("previewBlock").textContent=minText(elapsed(off,on));
-  $("previewFlight").textContent=minText(elapsed(take,land));
-  $("previewTaxiOut").textContent=minText(elapsed(off,take));
-  $("previewTaxiIn").textContent=minText(elapsed(land,on));
-}
-["offBlock","takeoff","landing","onBlock"].forEach(id=>$(id).addEventListener("input",calculateLogPreview));
+function logs(){return JSON.parse(localStorage.getItem("pilog.logs")||localStorage.getItem("pilotkit.logs")||"[]")}
+function save(arr){localStorage.setItem("pilog.logs",JSON.stringify(arr));localStorage.removeItem("pilotkit.logs")}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
-$("saveLog").onclick=()=>{
-  const off=toMin($("offBlock").value), take=toMin($("takeoff").value),
-        land=toMin($("landing").value), on=toMin($("onBlock").value);
-  const block=elapsed(off,on), flight=elapsed(take,land);
-  if(!$("logDate").value || !$("flightNo").value.trim()){
-    alert("请至少填写航班日期和航班号。"); return;
-  }
-  if(block===null || flight===null){
-    alert("请完整填写推出、起飞、落地和进位时间。"); return;
-  }
-  const arr=logs();
-  arr.push({
-    id:Date.now(),
-    date:$("logDate").value,
-    flightNo:$("flightNo").value.trim().toUpperCase(),
-    origin:$("origin").value.trim().toUpperCase(),
-    destination:$("destination").value.trim().toUpperCase(),
-    offBlock:$("offBlock").value,
-    takeoff:$("takeoff").value,
-    landing:$("landing").value,
-    onBlock:$("onBlock").value,
-    block,
-    flight,
-    taxiOut:elapsed(off,take),
-    taxiIn:elapsed(land,on),
-    fdp:toMin($("actualFdp").value)||0,
-    landings:Math.max(0,parseInt($("landings").value||0)),
-    crew:$("crewNames").value.trim(),
-    note:$("logNote").value.trim()
+function legTemplate(data={}){
+  const id=++legSeq;
+  return `<div class="leg-card" data-leg="${id}">
+    <div class="leg-head"><div><strong>航段 <span class="leg-number"></span></strong><div class="sub">机场可随时手动输入并覆盖任何航班号建议</div></div><button class="delete remove-leg" type="button">删除</button></div>
+    <div class="grid row">
+      <div><label>出发机场</label><input class="leg-origin" maxlength="4" placeholder="PEK" value="${esc(data.origin)}"></div>
+      <div><label>到达机场</label><input class="leg-destination" maxlength="4" placeholder="BCN" value="${esc(data.destination)}"></div>
+    </div>
+    <div class="grid row">
+      <div><label>推出</label><input class="leg-off" type="time" value="${data.offBlock||""}"></div>
+      <div><label>起飞</label><input class="leg-takeoff" type="time" value="${data.takeoff||""}"></div>
+    </div>
+    <div class="grid row">
+      <div><label>落地</label><input class="leg-landing" type="time" value="${data.landing||""}"></div>
+      <div><label>进位</label><input class="leg-on" type="time" value="${data.onBlock||""}"></div>
+    </div>
+    <div class="grid row">
+      <div><label>计入本人经历时间</label><input class="leg-credit" type="time" value="${data.creditedTimeText||""}"></div>
+      <div><label>夜航时间</label><input class="leg-night" type="time" value="${data.nightTimeText||""}"></div>
+    </div>
+    <div class="grid row">
+      <div><label>旅客人数（可选）</label><input class="leg-passengers" type="number" min="0" max="999" inputmode="numeric" value="${data.passengers??""}" placeholder="例如 278"></div>
+      <div><label>起降次数</label><input class="leg-landings" type="number" min="0" max="10" value="${data.landings??1}"></div>
+    </div>
+    <div class="row"><label>航段备注（可选）</label><input class="leg-note" value="${esc(data.note)}" placeholder="例如：备降、返航、继续执行"></div>
+    <div class="sub leg-summary">Block --:-- · 飞行 --:-- · 本人经历 --:-- · 夜航 --:--</div>
+  </div>`;
+}
+function renumberLegs(){
+  document.querySelectorAll(".leg-card").forEach((el,i)=>el.querySelector(".leg-number").textContent=i+1);
+  $("previewLegs").textContent=document.querySelectorAll(".leg-card").length;
+}
+function addLeg(data={}){
+  $("legsContainer").insertAdjacentHTML("beforeend",legTemplate(data));
+  const el=$("legsContainer").lastElementChild;
+  el.querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{
+    if(i.classList.contains("leg-origin")||i.classList.contains("leg-destination"))i.value=i.value.toUpperCase();
+    calculateTaskPreview();
+  }));
+  el.querySelector(".remove-leg").addEventListener("click",()=>{
+    if(document.querySelectorAll(".leg-card").length===1){alert("至少保留一个航段。");return;}
+    el.remove();renumberLegs();calculateTaskPreview();
   });
-  save(arr);
-  ["flightNo","origin","destination","offBlock","takeoff","landing","onBlock","crewNames","logNote"].forEach(id=>$(id).value="");
-  $("landings").value="1";
-  calculateLogPreview();
-  renderLogs();
-  alert("航班记录已保存。");
+  renumberLegs();calculateTaskPreview();
+}
+function collectLegs(validate=false){
+  return [...document.querySelectorAll(".leg-card")].map((el,i)=>{
+    const origin=el.querySelector(".leg-origin").value.trim().toUpperCase();
+    const destination=el.querySelector(".leg-destination").value.trim().toUpperCase();
+    const off=el.querySelector(".leg-off").value,takeoff=el.querySelector(".leg-takeoff").value,
+          landing=el.querySelector(".leg-landing").value,on=el.querySelector(".leg-on").value;
+    if(validate&&(!origin||!destination||!off||!takeoff||!landing||!on))
+      throw new Error(`请完整填写第 ${i+1} 航段的机场和四个实际时间。`);
+    const offM=toMin(off),takeM=toMin(takeoff),landM=toMin(landing),onM=toMin(on);
+    return {
+      origin,destination,offBlock:off,takeoff,landing,onBlock:on,
+      block:elapsed(offM,onM)||0,flight:elapsed(takeM,landM)||0,
+      taxiOut:elapsed(offM,takeM)||0,taxiIn:elapsed(landM,onM)||0,
+      credited:toMin(el.querySelector(".leg-credit").value)||0,
+      creditedTimeText:el.querySelector(".leg-credit").value,
+      night:toMin(el.querySelector(".leg-night").value)||0,
+      nightTimeText:el.querySelector(".leg-night").value,
+      passengers:el.querySelector(".leg-passengers").value===""?null:Math.max(0,parseInt(el.querySelector(".leg-passengers").value||0)),
+      landings:Math.max(0,parseInt(el.querySelector(".leg-landings").value||0)),
+      distanceKm:routeDistanceKm(origin,destination),
+      note:el.querySelector(".leg-note").value.trim()
+    };
+  });
+}
+function calculateTaskPreview(){
+  let block=0,flight=0,credited=0,night=0,landings=0,passengers=0,distanceKm=0;
+  collectLegs().forEach((l,i)=>{
+    block+=l.block;flight+=l.flight;credited+=l.credited;night+=l.night;landings+=l.landings;
+    if(l.passengers!==null)passengers+=l.passengers;
+    distanceKm+=l.distanceKm||0;
+    const el=document.querySelectorAll(".leg-card")[i];
+    el.querySelector(".leg-summary").textContent=`${l.origin||"---"} → ${l.destination||"---"} · Block ${minText(l.block)} · 飞行 ${minText(l.flight)} · 本人经历 ${minText(l.credited)} · 夜航 ${minText(l.night)}`;
+  });
+  $("previewBlock").textContent=minText(block);$("previewFlight").textContent=minText(flight);
+  $("previewCredited").textContent=minText(credited);$("previewNight").textContent=minText(night);
+  $("previewLandings").textContent=landings;$("previewPassengers").textContent=passengers.toLocaleString("zh-CN");
+  $("previewDistance").textContent=`${distanceKm.toLocaleString("zh-CN")} km`;renumberLegs();
+}
+$("addLeg").addEventListener("click",()=>addLeg());
+$("saveLog").onclick=()=>{
+  try{
+    if(!$("logDate").value||!$("flightNo").value.trim())throw new Error("请填写任务日期和航班号。");
+    const legs=collectLegs(true),arr=logs();
+    legs.forEach((l,i)=>{
+      if(l.credited>l.block) throw new Error(`第 ${i+1} 航段计入本人经历时间不能大于该航段 Block 时间。`);
+      if(l.night>l.flight) throw new Error(`第 ${i+1} 航段夜航时间不能大于该航段飞行时间。`);
+    });
+    arr.push({
+      id:Date.now(),date:$("logDate").value,flightNo:$("flightNo").value.trim().toUpperCase(),
+      aircraftType:$("aircraftType").value.trim().toUpperCase(),registration:$("registration").value.trim().toUpperCase(),
+      crew:$("crewNames").value.trim(),fdp:toMin($("actualFdp").value)||0,reportTime:$("dutyReportTime").value,
+      note:$("logNote").value.trim(),legs,
+      block:legs.reduce((s,l)=>s+l.block,0),flight:legs.reduce((s,l)=>s+l.flight,0),
+      credited:legs.reduce((s,l)=>s+l.credited,0),night:legs.reduce((s,l)=>s+l.night,0),
+      passengers:legs.reduce((s,l)=>s+(l.passengers===null?0:l.passengers),0),
+      passengerLegs:legs.filter(l=>l.passengers!==null).length,
+      distanceKm:legs.reduce((s,l)=>s+(l.distanceKm||0),0),
+      landings:legs.reduce((s,l)=>s+l.landings,0)
+    });
+    save(arr);resetLogForm();renderAll();alert("任务记录已保存。");
+  }catch(e){alert(e.message)}
 };
-$("clearLogs").onclick=()=>{if(confirm("确认清空全部航班记录？此操作无法撤销。")){save([]);renderLogs()}};
-
+function resetLogForm(){
+  ["flightNo","aircraftType","registration","crewNames","dutyReportTime","logNote"].forEach(id=>$(id).value="");
+  $("actualFdp").value="10:00";$("legsContainer").innerHTML="";addLeg();
+}
+$("clearLogs").onclick=()=>{if(confirm("确认清空全部任务记录？此操作无法撤销。")){save([]);renderAll()}};
 $("exportLogs").onclick=()=>{
-  const payload={
-    app:"PilotKit",
-    version:"0.4",
-    exportedAt:new Date().toISOString(),
-    records:logs()
-  };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url;
-  a.download=`PilotKit-Backup-${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const payload={app:"Pilog",version:"0.7",exportedAt:new Date().toISOString(),records:logs()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=`Pilog-Backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
-
 $("importLogsBtn").onclick=()=>$("importLogsFile").click();
 $("importLogsFile").onchange=async e=>{
-  const file=e.target.files[0]; if(!file) return;
+  const file=e.target.files[0];if(!file)return;
   try{
-    const data=JSON.parse(await file.text());
-    const imported=Array.isArray(data)?data:data.records;
-    if(!Array.isArray(imported)) throw new Error();
-    const existing=logs();
-    const byId=new Map(existing.map(x=>[x.id,x]));
-    imported.forEach(x=>byId.set(x.id||Date.now()+Math.random(),x));
-    save([...byId.values()]);
-    renderLogs();
-    alert(`已导入 ${imported.length} 条记录。`);
-  }catch{
-    alert("备份文件格式不正确。");
-  }
-  e.target.value="";
+    const data=JSON.parse(await file.text()), imported=Array.isArray(data)?data:data.records;
+    if(!Array.isArray(imported))throw new Error();
+    const map=new Map(logs().map(x=>[x.id,x]));imported.forEach(x=>map.set(x.id||Date.now()+Math.random(),x));save([...map.values()]);
+    renderAll();alert(`已导入 ${imported.length} 条记录。`);
+  }catch{alert("备份文件格式不正确。")} e.target.value="";
 };
-
 function setBar(id,val,max){
-  const p=Math.min(100,val/max*100),el=$(id);
-  el.style.width=p+"%";
-  el.className=p>=100?"dangerbar":p>=85?"warnbar":"";
+  const p=Math.min(100,val/max*100),el=$(id);el.style.width=p+"%";el.className=p>=100?"dangerbar":p>=85?"warnbar":"";
 }
-function renderLogs(){
-  const arr=logs().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id),
-        now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),
-        start7=new Date(today);
-  start7.setDate(start7.getDate()-6);
-  let s7=0,mf=0,mfdp=0,yf=0,monthBlock=0,yearBlock=0;
-  arr.forEach(r=>{
-    const d=new Date(r.date+"T12:00:00");
-    if(d>=start7&&d<=new Date(today.getTime()+86400000-1))s7+=(r.fdp||0);
-    if(d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()){
-      mfdp+=(r.fdp||0); mf+=(r.flight||0); monthBlock+=(r.block||0);
-    }
-    if(d.getFullYear()===now.getFullYear()){
-      yf+=(r.flight||0); yearBlock+=(r.block||0);
+function inRange(date,range){
+  const d=new Date(date+"T12:00:00"),n=new Date();
+  if(range==="month")return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth();
+  if(range==="year")return d.getFullYear()===n.getFullYear();
+  return true;
+}
+function flatLegs(range="all"){
+  const result=[];logs().forEach(task=>{if(inRange(task.date,range))(task.legs||[]).forEach(leg=>result.push({...leg,date:task.date,flightNo:task.flightNo}))});
+  return result;
+}
+function project(code){
+  const a=AIRPORTS[code];if(!a)return null;
+  return {x:(a[0]+180)/360*1000,y:(90-a[1])/180*500};
+}
+function routeDistanceKm(origin,destination){
+  const a=AIRPORTS[origin],b=AIRPORTS[destination];
+  if(!a||!b)return 0;
+  const rad=x=>x*Math.PI/180,R=6371;
+  const dLat=rad(b[1]-a[1]),dLon=rad(b[0]-a[0]);
+  const q=Math.sin(dLat/2)**2+Math.cos(rad(a[1]))*Math.cos(rad(b[1]))*Math.sin(dLon/2)**2;
+  return Math.round(2*R*Math.asin(Math.sqrt(q)));
+}
+function renderMap(){
+  const svg=$("routeOverlay"),legs=flatLegs(mapRange),unknown=new Set(),routes=new Map(),airports=new Set();
+  legs.forEach(l=>{
+    const a=project(l.origin),b=project(l.destination);
+    if(!a)unknown.add(l.origin);if(!b)unknown.add(l.destination);
+    if(a&&b){
+      airports.add(l.origin);airports.add(l.destination);
+      const key=`${l.origin}-${l.destination}`,r=routes.get(key)||{a,b,count:0,from:l.origin,to:l.destination};r.count++;routes.set(key,r);
     }
   });
-  $("sevenFdp").textContent=minText(s7);
-  $("monthFdp").textContent=minText(mfdp);
-  $("monthFlight").textContent=minText(mf);
-  $("yearFlight").textContent=minText(yf);
-  $("monthBlock").textContent=minText(monthBlock);
-  $("yearBlock").textContent=minText(yearBlock);
-  setBar("sevenBar",s7,3600); setBar("monthFdpBar",mfdp,12600);
-  setBar("monthFlightBar",mf,6000); setBar("yearFlightBar",yf,54000);
-
-  $("records").innerHTML=arr.length?arr.map(r=>`
+  let markup="";
+  routes.forEach(r=>{
+    const mx=(r.a.x+r.b.x)/2,my=Math.min(r.a.y,r.b.y)-Math.max(18,Math.abs(r.a.x-r.b.x)*0.08);
+    const width=Math.min(6,1.2+Math.log2(r.count+1)*1.4);
+    markup+=`<path d="M ${r.a.x} ${r.a.y} Q ${mx} ${my} ${r.b.x} ${r.b.y}" fill="none" stroke="#73a7ff" stroke-opacity="${Math.min(.9,.38+r.count*.08)}" stroke-width="${width}" stroke-linecap="round"><title>${r.from} → ${r.to} · ${r.count} 次</title></path>`;
+  });
+  airports.forEach(code=>{const p=project(code);markup+=`<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#f5f7fb" stroke="#73a7ff" stroke-width="2"><title>${code}</title></circle>`});
+  svg.innerHTML=markup;
+  $("airportWarning").classList.toggle("hidden",unknown.size===0);
+  $("airportWarning").textContent=unknown.size?`以下机场暂未收录经纬度，因此未绘制：${[...unknown].filter(Boolean).join("、")}。记录本身不受影响。`:"";
+}
+function renderSummary(){
+  const tasks=logs().filter(t=>inRange(t.date,mapRange)),legs=flatLegs(mapRange);
+  const block=tasks.reduce((s,t)=>s+(t.block||0),0),flight=tasks.reduce((s,t)=>s+(t.flight||0),0),
+        credited=tasks.reduce((s,t)=>s+(t.credited||0),0),night=tasks.reduce((s,t)=>s+(t.night||0),0),
+        passengers=tasks.reduce((s,t)=>s+(t.passengers||0),0),
+        passengerLegs=tasks.reduce((s,t)=>s+(t.passengerLegs||0),0),
+        distanceKm=tasks.reduce((s,t)=>s+(t.distanceKm||0),0),
+        landings=tasks.reduce((s,t)=>s+(t.landings||0),0),aps=new Set(),routes=new Set();
+  legs.forEach(l=>{if(l.origin)aps.add(l.origin);if(l.destination)aps.add(l.destination);if(l.origin&&l.destination)routes.add(`${l.origin}-${l.destination}`)});
+  $("sumBlock").textContent=minText(block);$("sumFlight").textContent=minText(flight);
+  $("sumCredited").textContent=minText(credited);$("sumNight").textContent=minText(night);$("sumLegs").textContent=legs.length;
+  $("sumLandings").textContent=landings;$("sumAirports").textContent=aps.size;$("sumRoutes").textContent=routes.size;
+  $("sumPassengers").textContent=passengers.toLocaleString("zh-CN");
+  $("sumPassengerLegs").textContent=passengerLegs;
+  $("sumDistance").textContent=`${distanceKm.toLocaleString("zh-CN")} km`;
+  $("sumEarthLoops").textContent=`${(distanceKm/40075).toFixed(distanceKm>=40075?1:2)} 圈`;
+  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),start7=new Date(today);start7.setDate(start7.getDate()-6);
+  let s7=0,mfdp=0,mf=0,yf=0;
+  logs().forEach(t=>{const d=new Date(t.date+"T12:00:00");if(d>=start7&&d<=new Date(today.getTime()+86399999))s7+=(t.fdp||0);
+    if(d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()){mfdp+=(t.fdp||0);mf+=(t.flight||0)}if(d.getFullYear()===now.getFullYear())yf+=(t.flight||0)});
+  $("sevenFdp").textContent=minText(s7);$("monthFdp").textContent=minText(mfdp);$("monthFlight").textContent=minText(mf);$("yearFlight").textContent=minText(yf);
+  setBar("sevenBar",s7,3600);setBar("monthFdpBar",mfdp,12600);setBar("monthFlightBar",mf,6000);setBar("yearFlightBar",yf,54000);renderMap();
+}
+document.querySelectorAll(".map-filter button").forEach(b=>b.addEventListener("click",()=>{
+  mapRange=b.dataset.range;document.querySelectorAll(".map-filter button").forEach(x=>x.classList.toggle("active",x===b));renderSummary();
+}));
+function renderRecords(){
+  const arr=logs().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  $("records").innerHTML=arr.length?arr.map(t=>`
     <div class="record" style="display:block">
       <div style="display:flex;justify-content:space-between;gap:12px">
-        <div>
-          <strong>${r.flightNo||"未命名航班"} ${r.origin||""}${r.origin||r.destination?" → ":""}${r.destination||""}</strong>
-          <small>${r.date} · 经历 ${minText(r.block||0)} · 飞行 ${minText(r.flight||0)} · ${r.landings||0} 次落地</small>
-        </div>
-        <button class="delete" onclick="delLog(${r.id})">删除</button>
+        <div><strong>${esc(t.flightNo)} · ${(t.legs||[]).length} 航段</strong>
+        <small>${t.date} · 本人经历 ${minText(t.credited||0)} · 夜航 ${minText(t.night||0)} · Block ${minText(t.block||0)} · ${t.landings||0} 次落地</small>
+        <small>${(t.passengerLegs||0)>0?`旅客 ${(t.passengers||0).toLocaleString("zh-CN")} 人 · `:""}航程 ${(t.distanceKm||0).toLocaleString("zh-CN")} km</small></div>
+        <button class="delete" data-delete="${t.id}">删除</button>
       </div>
-      <div class="sub" style="margin-top:8px">推出 ${r.offBlock||"--:--"} · 起飞 ${r.takeoff||"--:--"} · 落地 ${r.landing||"--:--"} · 进位 ${r.onBlock||"--:--"}</div>
-      ${r.crew?`<div class="sub" style="margin-top:6px">机组：${escapeHtml(r.crew)}</div>`:""}
-      ${r.note?`<div style="margin-top:9px;padding:10px 12px;background:var(--panel2);border-radius:12px;font-size:13px;line-height:1.55;white-space:pre-wrap">${escapeHtml(r.note)}</div>`:""}
-    </div>`).join(""):'<div class="sub" style="padding:18px 0">暂无航班记录</div>';
+      ${t.aircraftType||t.registration?`<div class="sub" style="margin-top:6px">${esc(t.aircraftType)} ${esc(t.registration)}</div>`:""}
+      ${(t.legs||[]).map((l,i)=>`<div style="margin-top:9px;padding:10px 12px;background:var(--panel2);border-radius:12px">
+        <strong style="font-size:14px">航段 ${i+1} · ${esc(l.origin)} → ${esc(l.destination)}</strong>
+        <div class="sub" style="margin-top:5px">推出 ${l.offBlock} · 起飞 ${l.takeoff} · 落地 ${l.landing} · 进位 ${l.onBlock}</div>
+        <div class="sub" style="margin-top:5px">Block ${minText(l.block)} · 飞行 ${minText(l.flight)} · 本人经历 ${minText(l.credited||0)} · 夜航 ${minText(l.night||0)}</div>
+        <div class="sub" style="margin-top:5px">${l.passengers!==null&&l.passengers!==undefined?`旅客 ${l.passengers} 人 · `:""}航程 ${(l.distanceKm||0).toLocaleString("zh-CN")} km</div>
+        ${l.note?`<div class="sub" style="margin-top:5px">${esc(l.note)}</div>`:""}
+      </div>`).join("")}
+      ${t.crew?`<div class="sub" style="margin-top:8px">机组：${esc(t.crew)}</div>`:""}
+      ${t.note?`<div style="margin-top:9px;padding:10px 12px;background:var(--panel2);border-radius:12px;font-size:13px;line-height:1.55;white-space:pre-wrap">${esc(t.note)}</div>`:""}
+    </div>`).join(""):'<div class="sub" style="padding:18px 0">暂无任务记录</div>';
+  document.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",()=>{if(confirm("删除这条任务记录？")){save(logs().filter(x=>x.id!==Number(b.dataset.delete)));renderAll()}}));
 }
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
-window.delLog=id=>{if(confirm("删除这条航班记录？")){save(logs().filter(x=>x.id!==id));renderLogs()}}
-if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
-setDefault();calculate();calculateLogPreview();renderLogs();
+function renderAll(){renderRecords();renderSummary()}
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js?v=070").then(reg=>{
+    reg.update();
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(!sessionStorage.getItem("pilog-reloaded-070")){
+        sessionStorage.setItem("pilog-reloaded-070","1");
+        location.reload();
+      }
+    });
+  }).catch(()=>{});
+}
+setDefault();calculate();addLeg();renderAll();
 </script>
 </body>
 </html>
