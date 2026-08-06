@@ -49,11 +49,19 @@ input,select{width:100%;border:0;outline:0;background:var(--panel2);color:var(--
 .map-filter button.active{background:#2a3448;color:#fff}
 .airport-warning{font-size:12px;color:#ffd77e;margin-top:9px;line-height:1.5}
 textarea{font-family:inherit}
+
+.task-record{border-bottom:1px solid var(--line)}
+.task-summary{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;border:0;background:transparent;color:var(--text);padding:14px 0;text-align:left}
+.task-summary-main{min-width:0}.task-summary-main strong{display:block;font-size:17px}.task-summary-main small{color:var(--muted)}
+.task-chevron{font-size:18px;color:var(--muted);transition:transform .2s}.task-record.open .task-chevron{transform:rotate(90deg)}
+.task-details{display:none;padding:0 0 16px}.task-record.open .task-details{display:block}
+.task-actions{display:flex;gap:8px;margin-top:12px}.task-actions button{flex:1}
+.edit-panel{margin-top:12px;padding:14px;background:var(--panel2);border-radius:16px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div><h1>Pilog</h1><div class="sub">极速录入、值勤计算与飞行人生</div></div><div class="badge">v0.8 “Quick Log”</div></div>
+  <div class="top"><div><h1>Pilog</h1><div class="sub">极速录入、值勤计算与飞行人生</div></div><div class="badge">v0.8.1 “Editable Log”</div></div>
 
   <section id="calcPage">
     <div class="card">
@@ -429,7 +437,7 @@ function resetLogForm(){
 }
 $("clearLogs").onclick=()=>{if(confirm("确认清空全部任务记录？此操作无法撤销。")){save([]);renderAll()}};
 $("exportLogs").onclick=()=>{
-  const payload={app:"Pilog",version:"0.8",exportedAt:new Date().toISOString(),records:logs()};
+  const payload={app:"Pilog",version:"0.8.1",exportedAt:new Date().toISOString(),records:logs()};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=`Pilog-Backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
@@ -514,37 +522,177 @@ function renderSummary(){
 document.querySelectorAll(".map-filter button").forEach(b=>b.addEventListener("click",()=>{
   mapRange=b.dataset.range;document.querySelectorAll(".map-filter button").forEach(x=>x.classList.toggle("active",x===b));renderSummary();
 }));
+
 function renderRecords(){
   const arr=logs().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
   $("records").innerHTML=arr.length?arr.map(t=>`
-    <div class="record" style="display:block">
-      <div style="display:flex;justify-content:space-between;gap:12px">
-        <div><strong>${esc(t.flightNo)} · ${(t.legs||[]).length} 航段</strong>
-        <small>${t.date} · 本人经历 ${minText(t.credited||0)} · 夜航 ${minText(t.night||0)} · Block ${minText(t.block||0)} · ${t.landings||0} 次落地</small>
-        <small>${(t.passengerLegs||0)>0?`旅客 ${(t.passengers||0).toLocaleString("zh-CN")} 人 · `:""}航程 ${(t.distanceKm||0).toLocaleString("zh-CN")} km</small></div>
-        <button class="delete" data-delete="${t.id}">删除</button>
+    <div class="task-record" data-task="${t.id}">
+      <button type="button" class="task-summary" data-toggle="${t.id}">
+        <div class="task-summary-main">
+          <strong>${esc(t.date)} · ${esc(t.flightNo)}</strong>
+          <small>${(t.legs||[]).length} 航段 · 本人经历 ${minText(t.credited||0)} · 夜航 ${minText(t.night||0)}</small>
+        </div>
+        <span class="task-chevron">›</span>
+      </button>
+      <div class="task-details">
+        ${t.aircraftType||t.registration?`<div class="sub">${esc(t.aircraftType)} ${esc(t.registration)}</div>`:""}
+        ${(t.legs||[]).map((l,i)=>`
+          <div style="margin-top:9px;padding:10px 12px;background:var(--panel2);border-radius:12px">
+            <strong style="font-size:14px">航段 ${i+1} · ${esc(l.origin)} → ${esc(l.destination)}</strong>
+            <div class="sub" style="margin-top:5px">北京时间：推出 ${displayHHMM(l.offBlock)} · 起飞 ${displayHHMM(l.takeoff)} · 落地 ${displayHHMM(l.landing)} · 进位 ${displayHHMM(l.onBlock)}</div>
+            <div class="sub" style="margin-top:5px">Block ${minText(l.block)} · 飞行 ${minText(l.flight)} · 本人经历 ${minText(l.credited||0)} · 夜航 ${minText(l.night||0)}</div>
+            <div class="sub" style="margin-top:5px">${l.passengers!==null&&l.passengers!==undefined?`旅客 ${l.passengers} 人 · `:""}航程 ${(l.distanceKm||0).toLocaleString("zh-CN")} km</div>
+            ${l.note?`<div class="sub" style="margin-top:5px">${esc(l.note)}</div>`:""}
+          </div>`).join("")}
+        ${t.crew?`<div class="sub" style="margin-top:8px">机组：${esc(t.crew)}</div>`:""}
+        ${t.note?`<div style="margin-top:9px;padding:10px 12px;background:var(--panel2);border-radius:12px;font-size:13px;line-height:1.55;white-space:pre-wrap"><strong>飞行心得 / 讲评</strong><br>${esc(t.note)}</div>`:""}
+        <div class="task-actions">
+          <button type="button" class="secondary" data-edit="${t.id}">修改</button>
+          <button type="button" class="secondary" data-delete="${t.id}" style="color:var(--danger)">删除</button>
+        </div>
+        <div id="edit-${t.id}" class="edit-panel hidden"></div>
       </div>
-      ${t.aircraftType||t.registration?`<div class="sub" style="margin-top:6px">${esc(t.aircraftType)} ${esc(t.registration)}</div>`:""}
-      ${(t.legs||[]).map((l,i)=>`<div style="margin-top:9px;padding:10px 12px;background:var(--panel2);border-radius:12px">
-        <strong style="font-size:14px">航段 ${i+1} · ${esc(l.origin)} → ${esc(l.destination)}</strong>
-        <div class="sub" style="margin-top:5px">北京时间：推出 ${displayHHMM(l.offBlock)} · 起飞 ${displayHHMM(l.takeoff)} · 落地 ${displayHHMM(l.landing)} · 进位 ${displayHHMM(l.onBlock)}</div>
-        <div class="sub" style="margin-top:5px">UTC：推出 ${displayHHMM(minutesToHHMM((toMin(l.offBlock)||0)-TIME_OFFSET_MINUTES))} · 起飞 ${displayHHMM(minutesToHHMM((toMin(l.takeoff)||0)-TIME_OFFSET_MINUTES))} · 落地 ${displayHHMM(minutesToHHMM((toMin(l.landing)||0)-TIME_OFFSET_MINUTES))} · 进位 ${displayHHMM(minutesToHHMM((toMin(l.onBlock)||0)-TIME_OFFSET_MINUTES))}</div>
-        <div class="sub" style="margin-top:5px">Block ${minText(l.block)} · 飞行 ${minText(l.flight)} · 本人经历 ${minText(l.credited||0)} · 夜航 ${minText(l.night||0)}</div>
-        <div class="sub" style="margin-top:5px">${l.passengers!==null&&l.passengers!==undefined?`旅客 ${l.passengers} 人 · `:""}航程 ${(l.distanceKm||0).toLocaleString("zh-CN")} km</div>
-        ${l.note?`<div class="sub" style="margin-top:5px">${esc(l.note)}</div>`:""}
-      </div>`).join("")}
-      ${t.crew?`<div class="sub" style="margin-top:8px">机组：${esc(t.crew)}</div>`:""}
-      ${t.note?`<div style="margin-top:9px;padding:10px 12px;background:var(--panel2);border-radius:12px;font-size:13px;line-height:1.55;white-space:pre-wrap">${esc(t.note)}</div>`:""}
     </div>`).join(""):'<div class="sub" style="padding:18px 0">暂无任务记录</div>';
-  document.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",()=>{if(confirm("删除这条任务记录？")){save(logs().filter(x=>x.id!==Number(b.dataset.delete)));renderAll()}}));
+
+  document.querySelectorAll("[data-toggle]").forEach(b=>b.addEventListener("click",()=>{
+    document.querySelector(`[data-task="${b.dataset.toggle}"]`).classList.toggle("open");
+  }));
+  document.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>openTaskEditor(Number(b.dataset.edit))));
+  document.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",()=>{
+    if(confirm("删除这条任务记录？")){
+      save(logs().filter(x=>x.id!==Number(b.dataset.delete)));
+      renderAll();
+    }
+  }));
 }
+
+function editorLegTemplate(leg,index){
+  return `<div class="leg-card edit-leg" data-index="${index}">
+    <div class="leg-head"><strong>航段 ${index+1}</strong></div>
+    <div class="grid row">
+      <div><label>出发机场</label><input class="edit-origin" value="${esc(leg.origin)}"></div>
+      <div><label>到达机场</label><input class="edit-destination" value="${esc(leg.destination)}"></div>
+    </div>
+    <div class="grid row">
+      <div><label>推出（北京时间）</label><input class="edit-off" inputmode="numeric" maxlength="4" value="${leg.offBlock||""}"></div>
+      <div><label>起飞（北京时间）</label><input class="edit-take" inputmode="numeric" maxlength="4" value="${leg.takeoff||""}"></div>
+    </div>
+    <div class="grid row">
+      <div><label>落地（北京时间）</label><input class="edit-land" inputmode="numeric" maxlength="4" value="${leg.landing||""}"></div>
+      <div><label>进位（北京时间）</label><input class="edit-on" inputmode="numeric" maxlength="4" value="${leg.onBlock||""}"></div>
+    </div>
+    <div class="grid row">
+      <div><label>本人经历</label><input class="edit-credit" inputmode="numeric" maxlength="4" value="${minutesToHHMM(leg.credited||0)}"></div>
+      <div><label>夜航</label><input class="edit-night" inputmode="numeric" maxlength="4" value="${minutesToHHMM(leg.night||0)}"></div>
+    </div>
+    <div class="grid row">
+      <div><label>旅客人数</label><input class="edit-passengers" type="number" min="0" value="${leg.passengers??""}"></div>
+      <div><label>起降次数</label><input class="edit-landings" type="number" min="0" value="${leg.landings??1}"></div>
+    </div>
+    <div class="row"><label>航段备注</label><input class="edit-leg-note" value="${esc(leg.note||"")}"></div>
+  </div>`;
+}
+
+function openTaskEditor(id){
+  const task=logs().find(x=>x.id===id);
+  if(!task)return;
+  const panel=$(`edit-${id}`);
+  if(!panel.classList.contains("hidden")){
+    panel.classList.add("hidden");panel.innerHTML="";return;
+  }
+  panel.innerHTML=`
+    <div class="grid row">
+      <div><label>日期</label><input class="edit-date" type="date" value="${task.date}"></div>
+      <div><label>航班号</label><input class="edit-flight-no" value="${esc(task.flightNo)}"></div>
+    </div>
+    <div class="grid row">
+      <div><label>机型</label><input class="edit-type" value="${esc(task.aircraftType||"")}"></div>
+      <div><label>机号</label><input class="edit-registration" value="${esc(task.registration||"")}"></div>
+    </div>
+    <div class="row"><label>机组人员姓名</label><input class="edit-crew" value="${esc(task.crew||"")}"></div>
+    <div>${(task.legs||[]).map(editorLegTemplate).join("")}</div>
+    <div class="row">
+      <label>教员讲评 / 飞行心得 / 备注</label>
+      <textarea class="edit-note" style="width:100%;min-height:130px;resize:vertical;border:0;outline:0;background:var(--panel);color:var(--text);font-size:16px;border-radius:14px;padding:13px 14px">${esc(task.note||"")}</textarea>
+    </div>
+    <div class="task-actions">
+      <button type="button" class="primary save-edit">保存修改</button>
+      <button type="button" class="secondary cancel-edit">取消</button>
+    </div>`;
+  panel.classList.remove("hidden");
+  panel.querySelectorAll(".edit-flight-no,.edit-type,.edit-registration,.edit-origin,.edit-destination").forEach(i=>{
+    i.addEventListener("input",()=>i.value=i.value.toUpperCase().replace(/\s/g,""));
+  });
+  panel.querySelectorAll(".edit-off,.edit-take,.edit-land,.edit-on,.edit-credit,.edit-night").forEach(i=>{
+    i.addEventListener("input",()=>i.value=i.value.replace(/\D/g,"").slice(0,4));
+  });
+  panel.querySelector(".cancel-edit").addEventListener("click",()=>{panel.classList.add("hidden");panel.innerHTML=""});
+  panel.querySelector(".save-edit").addEventListener("click",()=>saveTaskEdit(id,panel));
+}
+
+function saveTaskEdit(id,panel){
+  try{
+    const arr=logs(),idx=arr.findIndex(x=>x.id===id);
+    if(idx<0)return;
+    const original=arr[idx];
+    const editedLegs=[...panel.querySelectorAll(".edit-leg")].map((el,i)=>{
+      const origin=el.querySelector(".edit-origin").value.trim().toUpperCase();
+      const destination=el.querySelector(".edit-destination").value.trim().toUpperCase();
+      const off=normalizeHHMM(el.querySelector(".edit-off").value);
+      const take=normalizeHHMM(el.querySelector(".edit-take").value);
+      const land=normalizeHHMM(el.querySelector(".edit-land").value);
+      const on=normalizeHHMM(el.querySelector(".edit-on").value);
+      if(!origin||!destination||!off||!take||!land||!on)throw new Error(`请完整填写第 ${i+1} 航段。`);
+      const offM=hhmmToMinutes(off),takeM=hhmmToMinutes(take),landM=hhmmToMinutes(land),onM=hhmmToMinutes(on);
+      const credited=hhmmToMinutes(el.querySelector(".edit-credit").value)||0;
+      const night=hhmmToMinutes(el.querySelector(".edit-night").value)||0;
+      const block=elapsed(offM,onM)||0,flight=elapsed(takeM,landM)||0;
+      if(credited>block)throw new Error(`第 ${i+1} 航段本人经历不能大于 Block。`);
+      if(night>flight)throw new Error(`第 ${i+1} 航段夜航不能大于飞行时间。`);
+      return {
+        ...(original.legs[i]||{}),origin,destination,
+        offBlock:off,takeoff:take,landing:land,onBlock:on,
+        offBlockRaw:off,takeoffRaw:take,landingRaw:land,onBlockRaw:on,
+        block,flight,taxiOut:elapsed(offM,takeM)||0,taxiIn:elapsed(landM,onM)||0,
+        credited,creditedTimeText:minutesToHHMM(credited),
+        night,nightTimeText:minutesToHHMM(night),
+        passengers:el.querySelector(".edit-passengers").value===""?null:Math.max(0,parseInt(el.querySelector(".edit-passengers").value||0)),
+        landings:Math.max(0,parseInt(el.querySelector(".edit-landings").value||0)),
+        distanceKm:routeDistanceKm(origin,destination),
+        note:el.querySelector(".edit-leg-note").value.trim()
+      };
+    });
+    const updated={
+      ...original,
+      date:panel.querySelector(".edit-date").value,
+      flightNo:panel.querySelector(".edit-flight-no").value.trim().toUpperCase(),
+      aircraftType:panel.querySelector(".edit-type").value.trim().toUpperCase(),
+      registration:normalizeRegistration(panel.querySelector(".edit-registration").value),
+      crew:panel.querySelector(".edit-crew").value.trim(),
+      note:panel.querySelector(".edit-note").value.trim(),
+      legs:editedLegs,
+      block:editedLegs.reduce((s,l)=>s+l.block,0),
+      flight:editedLegs.reduce((s,l)=>s+l.flight,0),
+      credited:editedLegs.reduce((s,l)=>s+l.credited,0),
+      night:editedLegs.reduce((s,l)=>s+l.night,0),
+      passengers:editedLegs.reduce((s,l)=>s+(l.passengers===null?0:l.passengers),0),
+      passengerLegs:editedLegs.filter(l=>l.passengers!==null).length,
+      distanceKm:editedLegs.reduce((s,l)=>s+(l.distanceKm||0),0),
+      landings:editedLegs.reduce((s,l)=>s+l.landings,0)
+    };
+    arr[idx]=updated;
+    save(arr);
+    renderAll();
+  }catch(e){alert(e.message)}
+}
+
 function renderAll(){renderRecords();renderSummary()}
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=080").then(reg=>{
+  navigator.serviceWorker.register("./sw.js?v=081").then(reg=>{
     reg.update();
     navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(!sessionStorage.getItem("pilog-reloaded-080")){
-        sessionStorage.setItem("pilog-reloaded-080","1");
+      if(!sessionStorage.getItem("pilog-reloaded-081")){
+        sessionStorage.setItem("pilog-reloaded-081","1");
         location.reload();
       }
     });

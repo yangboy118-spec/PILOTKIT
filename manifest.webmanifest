@@ -1,7 +1,7 @@
 {
-  "name": "Pilog Quick Log",
+  "name": "Pilog Editable Log",
   "short_name": "Pilog",
-  "start_url": "./?v=080",
+  "start_url": "./?v=081",
   "display": "standalone",
   "background_color": "#0b0d12",
   "theme_color": "#0b0d12",
