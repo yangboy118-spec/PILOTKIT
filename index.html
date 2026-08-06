@@ -57,13 +57,20 @@ textarea{font-family:inherit}
 .task-details{display:none;padding:0 0 16px}.task-record.open .task-details{display:block}
 .task-actions{display:flex;gap:8px;margin-top:12px}.task-actions button{flex:1}
 .edit-panel{margin-top:12px;padding:14px;background:var(--panel2);border-radius:16px}
+
+.ocr-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ocr-preview{display:none;margin-top:14px;border-radius:18px;overflow:hidden;background:var(--panel2)}
+.ocr-preview img{display:block;width:100%;height:auto;max-height:300px;object-fit:contain}
+.ocr-status{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.5}
+.ocr-status.running{color:#ffd77e}.ocr-status.success{color:#7ce3a4}.ocr-status.error{color:#ff9191}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><div><h1>Pilog</h1><div class="sub">极速录入、值勤计算与飞行人生</div></div><div class="badge">v0.8.1 “Editable Log”</div></div>
+  <div class="top"><div><h1>Pilog</h1><div class="sub">极速录入、值勤计算与飞行人生</div></div><div class="badge">v0.9 “A350 OCR Demo”</div></div>
 
-  <section id="calcPage">
+  <section id="calcPage" class="hidden">
     <div class="card">
       <div class="row"><label>签到日期与时间（北京时间）</label><input id="report" type="datetime-local"></div>
       <div class="row"><label>机组配置</label><div class="segment" id="crewSeg">
@@ -85,9 +92,33 @@ textarea{font-family:inherit}
       <div class="sub" style="margin-top:8px">仅按前一飞行值勤期结束后连续休息 10 小时计算；其他附加休息要求需在“限制”页核对。</div>
     </div>
     <div class="note">仅供辅助核算。最终以现行受控运行手册、公司系统、运行控制和机长决定为准。</div>
-  </section>
+  
+    <div style="margin-top:22px">
+      <div class="kicker" style="padding:0 4px 10px">限制说明</div>
+      
+    <div class="card"><div class="kicker">最低休息</div><h2>连续 10 小时</h2><div class="sub">前一飞行值勤期结束至下一飞行值勤期开始之间，至少连续休息 10 小时。</div></div>
+    <div class="card"><div class="kicker">144 小时窗口</div><h2>至少连续 48 小时</h2><div class="sub">执行飞行任务或主备份前的 144 小时内，应安排一个至少连续 48 小时的休息期。</div></div>
+    <div class="card"><div class="kicker">连续运行日</div><h2>第 5 日不得安排飞行任务</h2><div class="sub">当终止地点与基地时差少于 6 小时，飞行值勤期和主备份达到连续 4 个日历日后，第 5 个日历日不得安排飞行任务；前续航班导致的备降除外。</div></div>
+    <div class="card"><div class="kicker">跨时区返回基地</div><h2>至少连续 48 小时</h2><div class="sub">终止地点与基地相差 6 小时或以上时，返回基地后、进入下一值勤期前，应安排至少连续 48 小时休息。</div></div>
+    <div class="note">本页展示手册附加休息要求，目前尚未根据航线、基地、主备份和过去 144 小时排班自动判定。</div>
+  
+    </div>
+</section>
 
-  <section id="logPage" class="hidden">
+  
+  <section id="logPage">
+    <div class="card">
+      <div class="kicker">A350 Flight Log 自动识别</div>
+      <div class="sub" style="margin:7px 0 14px">选择照片后，自动提取日期、航班号、机场和 OUT / OFF / ON / IN 时间，并直接填入当前记录。所有内容仍可人工修改。</div>
+      <div class="ocr-actions">
+        <button class="primary" id="selectFlightLog">📷 选择照片</button>
+        <button class="secondary" id="useA350Sample">使用示例照片</button>
+      </div>
+      <input id="flightLogFile" type="file" accept="image/*" capture="environment" class="hidden">
+      <div class="ocr-preview" id="ocrPreview"><img id="ocrPreviewImage" alt="Flight Log 预览"></div>
+      <div class="ocr-status" id="ocrStatus">网页版 Demo 使用在线 OCR 组件；正式原生版将改用 Apple Vision 离线识别。</div>
+    </div>
+
     <div class="card">
       <div class="grid row">
         <div><label>任务日期</label><input id="logDate" type="date"></div>
@@ -144,12 +175,29 @@ textarea{font-family:inherit}
       </div>
       <div class="sub" style="margin-top:10px">备份文件可保存到 iCloud Drive。原生版以后可升级为 CloudKit 自动同步。</div>
     </div>
+  </section>
+
+  
+  <section id="historyPage" class="hidden">
+    <div class="card">
+      <div class="kicker">历史</div>
+      <div class="row" style="margin-top:12px">
+        <label>搜索历史记录</label>
+        <input id="historySearch" type="search" placeholder="航班号、机组姓名、机场、机型、机号或备注">
+      </div>
+      <div class="sub">搜索会同时匹配航班号、机组姓名、机场代码、机型、机号、航段备注和飞行心得。</div>
+    </div>
 
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="kicker">任务记录</div><button class="secondary" id="clearLogs">清空</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <div class="kicker">任务记录</div>
+          <div class="sub" id="historyCount">0 条记录</div>
+        </div>
+        <button class="secondary" id="clearLogs">清空</button>
       </div>
       <div id="records"></div>
+      <div id="historyEmpty" class="sub hidden" style="padding:18px 0">没有找到匹配的历史记录</div>
     </div>
   </section>
 
@@ -196,16 +244,15 @@ textarea{font-family:inherit}
     </div>
   </section>
 
-  <section id="limitsPage" class="hidden">
-    <div class="card"><div class="kicker">最低休息</div><h2>连续 10 小时</h2><div class="sub">前一飞行值勤期结束至下一飞行值勤期开始之间，至少连续休息 10 小时。</div></div>
-    <div class="card"><div class="kicker">144 小时窗口</div><h2>至少连续 48 小时</h2><div class="sub">执行飞行任务或主备份前的 144 小时内，应安排一个至少连续 48 小时的休息期。</div></div>
-    <div class="card"><div class="kicker">连续运行日</div><h2>第 5 日不得安排飞行任务</h2><div class="sub">当终止地点与基地时差少于 6 小时，飞行值勤期和主备份达到连续 4 个日历日后，第 5 个日历日不得安排飞行任务；前续航班导致的备降除外。</div></div>
-    <div class="card"><div class="kicker">跨时区返回基地</div><h2>至少连续 48 小时</h2><div class="sub">终止地点与基地相差 6 小时或以上时，返回基地后、进入下一值勤期前，应安排至少连续 48 小时休息。</div></div>
-    <div class="note">本页展示手册附加休息要求，目前尚未根据航线、基地、主备份和过去 144 小时排班自动判定。</div>
-  </section>
+  
 </div>
 
-<nav class="tabs" style="grid-template-columns:repeat(4,1fr)"><button data-page="calcPage" class="active">计算</button><button data-page="logPage">记录</button><button data-page="summaryPage">汇总</button><button data-page="limitsPage">限制</button></nav>
+<nav class="tabs" style="grid-template-columns:repeat(4,1fr)">
+<button data-page="logPage" class="active">记录</button>
+<button data-page="historyPage">历史</button>
+<button data-page="summaryPage">汇总</button>
+<button data-page="calcPage">计算</button>
+</nav>
 <script>
 let crew="standard", currentCalc={};
 const $=id=>document.getElementById(id), report=$("report"),sectors=$("sectors"),facility=$("facility"),extension=$("extension");
@@ -217,7 +264,7 @@ else{const f=parseInt(facility.value),p=crew==="aug3"?3:4,table={1:{3:18,4:20},2
 if(extension.checked){duty+=2;rule+=" 当前情景加入起飞前意外运行延长 2 小时。"}const exp=new Date(d.getTime()+duty*3600000),next=new Date(exp.getTime()+10*3600000);$("expiryTime").textContent=`${pad(exp.getHours())}:${pad(exp.getMinutes())}`;$("expiryDate").textContent=fmtDate(exp);$("fdp").textContent=`${duty}小时`;$("flight").textContent=`${flight}小时`;$("ruleText").textContent=rule;$("nextReport").textContent=fmtFull(next);currentCalc={duty,flight,exp}}
 document.querySelectorAll("#crewSeg button").forEach(b=>b.onclick=()=>{crew=b.dataset.v;document.querySelectorAll("#crewSeg button").forEach(x=>x.classList.toggle("active",x===b));$("standardInputs").classList.toggle("hidden",crew!=="standard");$("augInputs").classList.toggle("hidden",crew==="standard");calculate()});
 [report,sectors,facility,extension].forEach(x=>x.addEventListener("input",calculate));extension.addEventListener("change",()=>{$("extensionWarn").classList.toggle("hidden",!extension.checked);calculate()});
-document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));["calcPage","logPage","summaryPage","limitsPage"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.page));if(b.dataset.page==="logPage")renderRecords();if(b.dataset.page==="summaryPage")renderSummary()});
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x===b));["calcPage","logPage","historyPage","summaryPage"].forEach(id=>$(id).classList.toggle("hidden",id!==b.dataset.page));if(b.dataset.page==="historyPage")renderRecords();if(b.dataset.page==="summaryPage")renderSummary()});
 
 
 const AIRPORTS={"PEK": [116.5975, 40.0799], "PKX": [116.4109, 39.5098], "PVG": [121.8052, 31.1443], "SHA": [121.3363, 31.1979], "CAN": [113.2988, 23.3924], "SZX": [113.8107, 22.6393], "CTU": [103.9471, 30.5785], "TFU": [104.4413, 30.3125], "XIY": [108.7516, 34.4471], "HGH": [120.4344, 30.2295], "NKG": [118.862, 31.742], "WUH": [114.2081, 30.7838], "CKG": [106.6417, 29.7192], "KMG": [102.9292, 25.1019], "URC": [87.4742, 43.9071], "HKG": [113.9146, 22.308], "TPE": [121.2328, 25.0777], "NRT": [140.3929, 35.772], "HND": [139.7798, 35.5494], "KIX": [135.244, 34.4347], "ICN": [126.4505, 37.4602], "SIN": [103.994, 1.3644], "BKK": [100.7501, 13.69], "SYD": [151.1772, -33.9461], "MEL": [144.843, -37.6733], "AKL": [174.785, -37.0082], "LHR": [-0.4543, 51.47], "CDG": [2.55, 49.0097], "FRA": [8.5706, 50.0333], "MUC": [11.7861, 48.3538], "FCO": [12.2508, 41.8003], "MXP": [8.7281, 45.6306], "MAD": [-3.5676, 40.4983], "BCN": [2.0785, 41.2974], "VIE": [16.5697, 48.1103], "ZRH": [8.5492, 47.4581], "GVA": [6.1089, 46.2381], "CPH": [12.656, 55.618], "ARN": [17.9186, 59.6519], "ATH": [23.9445, 37.9364], "IST": [28.8146, 41.2753], "DXB": [55.3644, 25.2532], "JFK": [-73.7781, 40.6413], "EWR": [-74.1745, 40.6895], "LAX": [-118.4085, 33.9416], "SFO": [-122.379, 37.6213], "YVR": [-123.184, 49.1967], "YYZ": [-79.6306, 43.6777], "IAD": [-77.4565, 38.9531], "IAH": [-95.3414, 29.9902], "GRU": [-46.4731, -23.4356], "JNB": [28.246, -26.1337], "HNL": [-157.9224, 21.3187], "DEL": [77.1031, 28.5562], "BOM": [72.8679, 19.0896], "KTM": [85.3591, 27.6966], "ULN": [106.7666, 47.8431], "SVO": [37.4146, 55.9726], "LED": [30.2625, 59.8003], "WAW": [20.9671, 52.1657], "BUD": [19.2611, 47.4298], "PRG": [14.2632, 50.1008]};
@@ -437,7 +484,7 @@ function resetLogForm(){
 }
 $("clearLogs").onclick=()=>{if(confirm("确认清空全部任务记录？此操作无法撤销。")){save([]);renderAll()}};
 $("exportLogs").onclick=()=>{
-  const payload={app:"Pilog",version:"0.8.1",exportedAt:new Date().toISOString(),records:logs()};
+  const payload={app:"Pilog",version:"0.9",exportedAt:new Date().toISOString(),records:logs()};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=`Pilog-Backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
@@ -523,8 +570,18 @@ document.querySelectorAll(".map-filter button").forEach(b=>b.addEventListener("c
   mapRange=b.dataset.range;document.querySelectorAll(".map-filter button").forEach(x=>x.classList.toggle("active",x===b));renderSummary();
 }));
 
+function taskSearchText(task){
+  return [
+    task.date,task.flightNo,task.aircraftType,task.registration,task.crew,task.note,
+    ...(task.legs||[]).flatMap(l=>[l.origin,l.destination,l.note])
+  ].filter(Boolean).join(" ").toUpperCase();
+}
 function renderRecords(){
-  const arr=logs().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  const query=($("historySearch")?.value||"").trim().toUpperCase();
+  const all=logs().sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+  const arr=query?all.filter(t=>taskSearchText(t).includes(query)):all;
+  if($("historyCount"))$("historyCount").textContent=`${arr.length} 条记录${query?`（共 ${all.length} 条）`:""}`;
+  if($("historyEmpty"))$("historyEmpty").classList.toggle("hidden",arr.length>0);
   $("records").innerHTML=arr.length?arr.map(t=>`
     <div class="task-record" data-task="${t.id}">
       <button type="button" class="task-summary" data-toggle="${t.id}">
@@ -552,7 +609,7 @@ function renderRecords(){
         </div>
         <div id="edit-${t.id}" class="edit-panel hidden"></div>
       </div>
-    </div>`).join(""):'<div class="sub" style="padding:18px 0">暂无任务记录</div>';
+    </div>`).join(""):"";
 
   document.querySelectorAll("[data-toggle]").forEach(b=>b.addEventListener("click",()=>{
     document.querySelector(`[data-task="${b.dataset.toggle}"]`).classList.toggle("open");
@@ -686,13 +743,118 @@ function saveTaskEdit(id,panel){
   }catch(e){alert(e.message)}
 }
 
+if($("historySearch")){
+  $("historySearch").addEventListener("input",renderRecords);
+}
 function renderAll(){renderRecords();renderSummary()}
+
+const AIRPORT_ICAO_TO_IATA={
+  ZSPD:"PVG",ZBAA:"PEK",ZBAD:"PKX",ZSSS:"SHA",ZGGG:"CAN",ZGSZ:"SZX",
+  LEBL:"BCN",LEMD:"MAD",EGLL:"LHR",LFPG:"CDG",EDDF:"FRA",LIRF:"FCO",
+  RJTT:"HND",RJAA:"NRT",RKSI:"ICN",WSSS:"SIN",VTBS:"BKK",OMDB:"DXB"
+};
+
+function setOCRStatus(text,type=""){
+  const el=$("ocrStatus");
+  el.textContent=text;
+  el.className=`ocr-status ${type}`.trim();
+}
+function cleanOCRText(text){
+  return String(text||"").toUpperCase()
+    .replace(/[|]/g,"I")
+    .replace(/[^\S\r\n]+/g," ")
+    .replace(/\r/g,"\n");
+}
+function extractTimeNear(text,label){
+  const patterns=[
+    new RegExp(`${label}\\s*[:\\-]?\\s*([0-2]?\\d)\\s*[:.]\\s*([0-5]\\d)`,"i"),
+    new RegExp(`${label}[\\s\\S]{{0,30}}?([0-2]\\d)([0-5]\\d)`,"i")
+  ];
+  for(const p of patterns){
+    const m=text.match(p);
+    if(m){
+      const hh=String(m[1]).padStart(2,"0"),mm=String(m[2]).padStart(2,"0");
+      if(Number(hh)<24&&Number(mm)<60)return `${hh}${mm}`;
+    }
+  }
+  return "";
+}
+function parseA350FlightLog(text){
+  const t=cleanOCRText(text);
+  const flight=(t.match(/\bCA\s*0?(\d{3,4})\b/)||[])[1];
+  const dateMatch=t.match(/\b(\d{1,2})[-\s](JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(?:[-\s](\d{2,4}))?\b/);
+  const from=(t.match(/\bFROM\s*[:\-]?\s*([A-Z]{4})\b/)||[])[1];
+  const to=(t.match(/\bTO\s*[:\-]?\s*([A-Z]{4})\b/)||[])[1];
+  return {
+    flightNo:flight?`CA${flight}`:"",
+    dateParts:dateMatch?{day:Number(dateMatch[1]),month:dateMatch[2],year:dateMatch[3]||""}:null,
+    origin:from?(AIRPORT_ICAO_TO_IATA[from]||from):"",
+    destination:to?(AIRPORT_ICAO_TO_IATA[to]||to):"",
+    out:extractTimeNear(t,"OUT"),
+    off:extractTimeNear(t,"OFF"),
+    on:extractTimeNear(t,"ON"),
+    in:extractTimeNear(t,"IN")
+  };
+}
+function resolveOCRDate(parts){
+  if(!parts)return "";
+  const months={JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12};
+  let year=parts.year?Number(parts.year):new Date().getFullYear();
+  if(year<100)year+=2000;
+  return `${year}-${pad(months[parts.month])}-${pad(parts.day)}`;
+}
+function fillFromOCR(data){
+  if(data.flightNo)$("flightNo").value=data.flightNo;
+  const date=resolveOCRDate(data.dateParts);if(date)$("logDate").value=date;
+  const first=document.querySelector(".leg-card");
+  if(!first)addLeg();
+  const leg=document.querySelector(".leg-card");
+  if(data.origin)leg.querySelector(".leg-origin").value=data.origin;
+  if(data.destination)leg.querySelector(".leg-destination").value=data.destination;
+  if(data.out)leg.querySelector(".leg-off").value=data.out;
+  if(data.off)leg.querySelector(".leg-takeoff").value=data.off;
+  if(data.on)leg.querySelector(".leg-landing").value=data.on;
+  if(data.in)leg.querySelector(".leg-on").value=data.in;
+  timeMode="utc";
+  document.querySelectorAll("#timeModeSeg button").forEach(x=>x.classList.toggle("active",x.dataset.v==="utc"));
+  calculateTaskPreview();
+}
+async function recognizeFlightLog(source){
+  $("ocrPreview").style.display="block";
+  $("ocrPreviewImage").src=source;
+  setOCRStatus("正在识别 A350 Flight Log，请稍候……","running");
+  try{
+    if(!window.Tesseract)throw new Error("OCR 组件未加载，请检查网络后重试。");
+    const result=await Tesseract.recognize(source,"eng",{
+      logger:m=>{
+        if(m.status==="recognizing text")setOCRStatus(`正在识别：${Math.round((m.progress||0)*100)}%`,"running");
+      }
+    });
+    const parsed=parseA350FlightLog(result.data.text);
+    const found=[parsed.flightNo,parsed.origin,parsed.destination,parsed.out,parsed.off,parsed.on,parsed.in].filter(Boolean).length;
+    if(found<4)throw new Error("没有识别出足够的数据。请换一张更清晰、正对屏幕的照片，或手动填写。");
+    fillFromOCR(parsed);
+    setOCRStatus("识别完成，数据已填入当前记录。请检查并按需要人工修改。","success");
+    document.querySelector("#logPage .card:nth-of-type(2)")?.scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(e){
+    setOCRStatus(e.message||"识别失败，请重试或手动填写。","error");
+  }
+}
+$("selectFlightLog").addEventListener("click",()=>$("flightLogFile").click());
+$("flightLogFile").addEventListener("change",e=>{
+  const file=e.target.files[0];if(!file)return;
+  const url=URL.createObjectURL(file);
+  recognizeFlightLog(url).finally(()=>setTimeout(()=>URL.revokeObjectURL(url),3000));
+  e.target.value="";
+});
+$("useA350Sample").addEventListener("click",()=>recognizeFlightLog("./a350-sample.jpeg"));
+
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=081").then(reg=>{
+  navigator.serviceWorker.register("./sw.js?v=090").then(reg=>{
     reg.update();
     navigator.serviceWorker.addEventListener("controllerchange",()=>{
-      if(!sessionStorage.getItem("pilog-reloaded-081")){
-        sessionStorage.setItem("pilog-reloaded-081","1");
+      if(!sessionStorage.getItem("pilog-reloaded-090")){
+        sessionStorage.setItem("pilog-reloaded-090","1");
         location.reload();
       }
     });

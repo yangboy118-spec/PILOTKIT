@@ -1,7 +1,7 @@
 {
-  "name": "Pilog Editable Log",
+  "name": "Pilog A350 OCR Demo",
   "short_name": "Pilog",
-  "start_url": "./?v=081",
+  "start_url": "./?v=090",
   "display": "standalone",
   "background_color": "#0b0d12",
   "theme_color": "#0b0d12",
